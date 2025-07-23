@@ -100,10 +100,8 @@ async def receive_content(message: types.Message, state: FSMContext):
         ]
     )
 
-    mod_message = await bot.copy_message(
+    mod_message = await message.send_copy(
         MOD_CHAT_ID,
-        message.chat.id,
-        message.message_id,
         reply_markup=kb,
     )
 
