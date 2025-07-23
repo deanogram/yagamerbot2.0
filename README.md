@@ -19,6 +19,14 @@
    # отредактируйте .env
    ```
 
+Пример содержимого `.env`:
+
+```env
+BOT_TOKEN=7749511637:AAH-EOLjSombpRtdHA0wQBZ7ojnvbeFlyLo
+ADMIN_ID=206094225
+MOD_CHAT_ID=-1002527730048
+```
+
 Переменные окружения:
 
 - `BOT_TOKEN` – токен телеграм‑бота
