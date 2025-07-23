@@ -16,6 +16,6 @@ menu_kb = ReplyKeyboardMarkup(
 @router.message(CommandStart())
 async def handle_start(message: types.Message):
     await message.answer(
-        "Здравствуйте! Отправьте мне сообщение, и оно будет переслано модераторам.",
+        "Здравствуйте! Нажмите \"Предложить контент\", чтобы отправить материал на модерацию.",
         reply_markup=menu_kb,
     )
