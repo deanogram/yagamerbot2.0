@@ -7,6 +7,8 @@ from aiogram.enums import ChatType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
+from datetime import datetime
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,6 +28,39 @@ class Suggest(StatesGroup):
 suggestions: dict[int, dict] = {}
 waiting_comments: dict[int, int] = {}
 
+# данные для антиспама
+MAX_MESSAGES_PER_DAY = 20
+MIN_INTERVAL_SEC = 3
+
+user_stats: dict[int, dict] = {}
+banned_words = {"spam", "junk", "badword"}
+
+
+def check_message_allowed(user_id: int, text: str) -> tuple[bool, str | None]:
+    """Verify spam limits and filter content."""
+    data = user_stats.get(user_id)
+    now = time.time()
+    today = datetime.utcnow().date()
+
+    if data is None or data.get("day") != today:
+        data = {"count": 0, "last_time": 0.0, "day": today}
+        user_stats[user_id] = data
+
+    if now - data["last_time"] < MIN_INTERVAL_SEC:
+        return False, "Пожалуйста, не спамьте. Подождите немного."
+
+    if data["count"] >= MAX_MESSAGES_PER_DAY:
+        return False, "Превышен лимит сообщений на сегодня."
+
+    text_lower = (text or "").lower()
+    for word in banned_words:
+        if word in text_lower:
+            return False, "Сообщение содержит запрещенные слова."
+
+    data["count"] += 1
+    data["last_time"] = now
+    return True, None
+
 @dp.message(CommandStart())
 async def handle_start(message: types.Message):
     await message.answer(
@@ -44,6 +79,13 @@ async def cmd_suggest(message: types.Message, state: FSMContext):
 @dp.message(Suggest.waiting_for_content)
 async def receive_content(message: types.Message, state: FSMContext):
     if message.chat.type != ChatType.PRIVATE:
+        return
+
+    allowed, reason = check_message_allowed(
+        message.chat.id, message.text or message.caption or ""
+    )
+    if not allowed:
+        await message.answer(reason)
         return
 
     kb = InlineKeyboardMarkup(
@@ -134,6 +176,12 @@ async def skip_comment(callback: types.CallbackQuery):
 @dp.message()
 async def forward_private(message: types.Message):
     if message.chat.type == ChatType.PRIVATE:
+        allowed, reason = check_message_allowed(
+            message.chat.id, message.text or message.caption or ""
+        )
+        if not allowed:
+            await message.answer(reason)
+            return
         await bot.forward_message(MOD_CHAT_ID, message.chat.id, message.message_id)
         await message.answer("Ваше сообщение отправлено модераторам.")
     else:
