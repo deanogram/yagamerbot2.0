@@ -10,6 +10,8 @@ from app.config import Config
 
 router = Router()
 
+SUGGEST_BUTTON = "\u2709\ufe0f Предложить контент"
+
 
 class Suggest(StatesGroup):
     waiting_for_content = State()
@@ -26,6 +28,7 @@ def setup(config: Config):
 
 
 @router.message(Command("suggest"))
+@router.message(F.text == SUGGEST_BUTTON)
 async def cmd_suggest(message: types.Message, state: FSMContext):
     await state.set_state(Suggest.waiting_for_content)
     await message.answer(
