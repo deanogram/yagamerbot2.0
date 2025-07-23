@@ -1,5 +1,6 @@
 import asyncio
 import os
+import logging
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
@@ -10,6 +11,8 @@ from aiogram.fsm.context import FSMContext
 from datetime import datetime
 import time
 from dotenv import load_dotenv
+
+logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 
