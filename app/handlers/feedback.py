@@ -11,6 +11,7 @@ from app.constants import (
     COMPLAINT_BUTTON,
     BACK_BUTTON,
 )
+from app.utils.spam import check_message_allowed
 from app.config import Config
 from . import start
 
@@ -77,6 +78,10 @@ async def cancel_proposal(message: types.Message, state: FSMContext) -> None:
 
 @router.message(FeedbackState.waiting_proposal)
 async def handle_proposal(message: types.Message, state: FSMContext) -> None:
+    allowed, reason = check_message_allowed(message.from_user.id, message.text or "")
+    if not allowed:
+        await message.answer(reason)
+        return
     mod_msg = await message.bot.send_message(
         _config.feedback_chat_id,
         f"[Предложение]\nОт {message.from_user.full_name} ({message.from_user.id})\n{message.text}",
@@ -103,6 +108,10 @@ async def cancel_question(message: types.Message, state: FSMContext) -> None:
 
 @router.message(FeedbackState.waiting_question)
 async def handle_question(message: types.Message, state: FSMContext) -> None:
+    allowed, reason = check_message_allowed(message.from_user.id, message.text or "")
+    if not allowed:
+        await message.answer(reason)
+        return
     mod_msg = await message.bot.send_message(
         _config.feedback_chat_id,
         f"[Вопрос]\nОт {message.from_user.full_name} ({message.from_user.id})\n{message.text}",
@@ -132,6 +141,10 @@ async def cancel_complaint(message: types.Message, state: FSMContext) -> None:
 
 @router.message(FeedbackState.waiting_complaint)
 async def handle_complaint(message: types.Message, state: FSMContext) -> None:
+    allowed, reason = check_message_allowed(message.from_user.id, message.text or "")
+    if not allowed:
+        await message.answer(reason)
+        return
     mod_msg = await message.bot.send_message(
         _config.feedback_chat_id,
         f"[Жалоба]\nОт {message.from_user.full_name} ({message.from_user.id})\n{message.text}",
