@@ -1,11 +1,22 @@
 from datetime import datetime
 import time
 
-MAX_MESSAGES_PER_DAY = 20
+# Maximum number of messages a user can send per day
+# Includes proposals, feedback and any other text input
+MAX_MESSAGES_PER_DAY = 10
 MIN_INTERVAL_SEC = 3
 
 user_stats: dict[int, dict] = {}
-banned_words = {"spam", "junk", "badword"}
+# Basic set of banned words for profanity filtering
+banned_words = {
+    "spam",
+    "junk",
+    "badword",
+    "хуй",
+    "пизда",
+    "блять",
+    "сука",
+}
 
 
 def check_message_allowed(user_id: int, text: str) -> tuple[bool, str | None]:
