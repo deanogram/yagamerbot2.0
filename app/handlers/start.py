@@ -2,9 +2,11 @@ from aiogram import types, Router
 from aiogram.filters import CommandStart
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-from .suggest import SUGGEST_BUTTON
-from .profile import PROFILE_BUTTON
-from .tournaments import TOURNAMENTS_BUTTON
+from app.constants import (
+    SUGGEST_BUTTON,
+    PROFILE_BUTTON,
+    TOURNAMENTS_BUTTON,
+)
 from app.utils import add_user
 
 router = Router()

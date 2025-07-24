@@ -1,0 +1,6 @@
+SUGGEST_BUTTON = "\u2709\ufe0f Предложить контент"
+PROFILE_BUTTON = "\U0001F464 Профиль"
+TOURNAMENTS_BUTTON = "\U0001F3C6 Турниры"
+BACK_BUTTON = "\u2B05\ufe0f Назад"
+JOIN_BUTTON = "Участвовать"
+RATING_BUTTON = "Рейтинг игроков"
