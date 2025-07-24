@@ -1,8 +1,19 @@
 from aiogram import Router, types
 from aiogram.enums import ChatMemberStatus
+from aiogram.filters import Command
+import time
 
 from app.config import Config
-from app.utils import add_user, add_xp
+from app.utils import (
+    add_user,
+    add_xp,
+    add_warning,
+    get_warnings,
+    clear_warnings,
+    mute_user,
+    unmute_user,
+    is_muted,
+)
 from app.utils.spam import check_message_allowed
 
 router = Router()
@@ -28,14 +39,187 @@ async def handle_new_member(event: types.ChatMemberUpdated) -> None:
 
 @router.message(lambda m: m.chat.id == _config.forum_chat_id)
 async def moderate_group_message(message: types.Message) -> None:
-    allowed, reason = check_message_allowed(message.from_user.id, message.text or message.caption or "")
+    if is_muted(message.from_user.id):
+        await message.delete()
+        return
+
+    allowed, reason = check_message_allowed(
+        message.from_user.id, message.text or message.caption or ""
+    )
     if not allowed:
         await message.delete()
-        try:
-            await message.bot.send_message(message.from_user.id, reason)
-        except Exception:
-            pass
+        if reason in {
+            "Сообщение содержит запрещенные слова.",
+            "Сообщение содержит запрещенные ссылки.",
+        }:
+            count = add_warning(message.from_user.id)
+            if count >= 4:
+                mute_user(message.from_user.id, 24 * 3600)
+                clear_warnings(message.from_user.id)
+                try:
+                    await message.bot.restrict_chat_member(
+                        _config.forum_chat_id,
+                        message.from_user.id,
+                        types.ChatPermissions(can_send_messages=False),
+                        until_date=int(time.time()) + 24 * 3600,
+                    )
+                    await message.bot.send_message(
+                        message.from_user.id,
+                        "Вы получили мут на 24 часа за нарушения.",
+                    )
+                except Exception:
+                    pass
+            else:
+                if reason.startswith("Сообщение содержит запрещенные слова"):
+                    warn_text = "Ай ай ай, приятель, не стоит выражаться"
+                else:
+                    warn_text = "Тут нельзя ничего рекламировать, друг"
+                try:
+                    await message.bot.send_message(
+                        message.from_user.id,
+                        f"{warn_text} ({count}/3 варнов)",
+                    )
+                except Exception:
+                    pass
+        else:
+            try:
+                await message.bot.send_message(message.from_user.id, reason)
+            except Exception:
+                pass
         return
     add_user(message.from_user)
     add_xp(message.from_user.id, 1)
+
+
+def _allowed_staff(message: types.Message) -> bool:
+    return (
+        message.from_user.id == _config.admin_id
+        or message.chat.id == _config.mod_chat_id
+    )
+
+
+@router.message(Command("mute"))
+async def cmd_mute(message: types.Message) -> None:
+    if not _allowed_staff(message):
+        return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.reply("Usage: /mute <user_id> [hours]")
+        return
+    try:
+        user_id = int(parts[1])
+    except ValueError:
+        await message.reply("Invalid user id")
+        return
+    hours = int(parts[2]) if len(parts) > 2 else 24
+    mute_user(user_id, hours * 3600)
+    try:
+        await message.bot.restrict_chat_member(
+            _config.forum_chat_id,
+            user_id,
+            types.ChatPermissions(can_send_messages=False),
+            until_date=int(time.time()) + hours * 3600,
+        )
+        await message.reply(f"User {user_id} muted for {hours}h")
+    except Exception:
+        await message.reply("Failed to mute user")
+
+
+@router.message(Command("unmute"))
+async def cmd_unmute(message: types.Message) -> None:
+    if not _allowed_staff(message):
+        return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.reply("Usage: /unmute <user_id>")
+        return
+    try:
+        user_id = int(parts[1])
+    except ValueError:
+        await message.reply("Invalid user id")
+        return
+    unmute_user(user_id)
+    try:
+        await message.bot.restrict_chat_member(
+            _config.forum_chat_id,
+            user_id,
+            types.ChatPermissions(can_send_messages=True),
+        )
+        await message.reply("User unmuted")
+    except Exception:
+        await message.reply("Failed to unmute user")
+
+
+@router.message(Command("ban"))
+async def cmd_ban(message: types.Message) -> None:
+    if not _allowed_staff(message):
+        return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.reply("Usage: /ban <user_id>")
+        return
+    try:
+        user_id = int(parts[1])
+    except ValueError:
+        await message.reply("Invalid user id")
+        return
+    try:
+        await message.bot.ban_chat_member(_config.forum_chat_id, user_id)
+        await message.reply("User banned")
+    except Exception:
+        await message.reply("Failed to ban user")
+
+
+@router.message(Command("unban"))
+async def cmd_unban(message: types.Message) -> None:
+    if not _allowed_staff(message):
+        return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.reply("Usage: /unban <user_id>")
+        return
+    try:
+        user_id = int(parts[1])
+    except ValueError:
+        await message.reply("Invalid user id")
+        return
+    try:
+        await message.bot.unban_chat_member(_config.forum_chat_id, user_id)
+        await message.reply("User unbanned")
+    except Exception:
+        await message.reply("Failed to unban user")
+
+
+@router.message(Command("warnings"))
+async def cmd_warnings(message: types.Message) -> None:
+    if not _allowed_staff(message):
+        return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.reply("Usage: /warnings <user_id>")
+        return
+    try:
+        user_id = int(parts[1])
+    except ValueError:
+        await message.reply("Invalid user id")
+        return
+    count = get_warnings(user_id)
+    await message.reply(f"Warnings: {count}")
+
+
+@router.message(Command("clearwarn"))
+async def cmd_clearwarn(message: types.Message) -> None:
+    if not _allowed_staff(message):
+        return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.reply("Usage: /clearwarn <user_id>")
+        return
+    try:
+        user_id = int(parts[1])
+    except ValueError:
+        await message.reply("Invalid user id")
+        return
+    clear_warnings(user_id)
+    await message.reply("Warnings cleared")
 
