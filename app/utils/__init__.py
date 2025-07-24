@@ -7,3 +7,8 @@ from .database import (
     init_tournament_db,
     get_tournament_ratings,
 )
+from .moderation import (
+    init_moderation_db,
+    add_banned_word,
+    add_banned_link,
+)
