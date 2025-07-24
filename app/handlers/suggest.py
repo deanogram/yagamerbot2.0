@@ -1,17 +1,27 @@
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.enums import ChatType
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+)
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 from app.utils.spam import check_message_allowed
 from app.utils import add_user, increment_submission, record_result
 from app.config import Config
+from app.constants import SUGGEST_BUTTON, BACK_BUTTON
+from . import start
 
 router = Router()
 
-SUGGEST_BUTTON = "\u2709\ufe0f Предложить контент"
+cancel_kb = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton(text=BACK_BUTTON)]],
+    resize_keyboard=True,
+)
 
 
 class Suggest(StatesGroup):
@@ -34,8 +44,15 @@ async def cmd_suggest(message: types.Message, state: FSMContext):
     add_user(message.from_user)
     await state.set_state(Suggest.waiting_for_content)
     await message.answer(
-        "Отправьте контент (фото, видео, текст, гиф или музыку) для модерации."
+        "Отправьте контент (фото, видео, текст, гиф или музыку) для модерации.",
+        reply_markup=cancel_kb,
     )
+
+
+@router.message(Suggest.waiting_for_content, F.text == BACK_BUTTON)
+async def cancel_suggest(message: types.Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("Главное меню", reply_markup=start.menu_kb)
 
 
 @router.message(Suggest.waiting_for_content)
@@ -72,7 +89,10 @@ async def receive_content(message: types.Message, state: FSMContext):
         "decision": None,
     }
 
-    await message.answer("Контент отправлен на модерацию.")
+    await message.answer(
+        "Контент отправлен на модерацию.",
+        reply_markup=start.menu_kb,
+    )
     await state.clear()
 
 

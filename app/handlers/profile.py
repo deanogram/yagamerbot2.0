@@ -2,10 +2,10 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 
 from app.utils import add_user, get_user_stats
+from app.constants import PROFILE_BUTTON
+from . import start
 
 router = Router()
-
-PROFILE_BUTTON = "\U0001F464 Профиль"
 
 
 @router.message(Command("profile"))
@@ -26,4 +26,4 @@ async def handle_profile(message: types.Message) -> None:
         f"\u2705 Принято: {approved}\n"
         f"\u274C Отклонено: {rejected}"
     )
-    await message.answer(text)
+    await message.answer(text, reply_markup=start.menu_kb)

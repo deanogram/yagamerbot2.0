@@ -3,18 +3,22 @@ from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 from app.utils import get_tournament_ratings
+from app.constants import (
+    TOURNAMENTS_BUTTON,
+    JOIN_BUTTON,
+    RATING_BUTTON,
+    BACK_BUTTON,
+)
+from . import start
 
 router = Router()
-
-TOURNAMENTS_BUTTON = "\U0001F3C6 Турниры"
-JOIN_BUTTON = "Участвовать"
-RATING_BUTTON = "Рейтинг игроков"
 
 
 tournament_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text=JOIN_BUTTON)],
         [KeyboardButton(text=RATING_BUTTON)],
+        [KeyboardButton(text=BACK_BUTTON)],
     ],
     resize_keyboard=True,
 )
@@ -27,6 +31,11 @@ async def tournaments_menu(message: types.Message) -> None:
         "Добро пожаловать в турнирную ЯGAMER. Участвуй, побеждай и получи удовольствие!",
         reply_markup=tournament_kb,
     )
+
+
+@router.message(F.text == BACK_BUTTON)
+async def tournaments_back(message: types.Message) -> None:
+    await message.answer("Главное меню", reply_markup=start.menu_kb)
 
 
 @router.message(F.text == JOIN_BUTTON)
