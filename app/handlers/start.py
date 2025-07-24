@@ -6,6 +6,7 @@ from app.constants import (
     SUGGEST_BUTTON,
     PROFILE_BUTTON,
     TOURNAMENTS_BUTTON,
+    FEEDBACK_BUTTON,
 )
 from app.utils import add_user
 
@@ -19,6 +20,7 @@ menu_kb = ReplyKeyboardMarkup(
             KeyboardButton(text=PROFILE_BUTTON),
         ],
         [KeyboardButton(text=TOURNAMENTS_BUTTON)],
+        [KeyboardButton(text=FEEDBACK_BUTTON)],
     ],
     resize_keyboard=True,
 )

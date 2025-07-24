@@ -25,6 +25,7 @@
 BOT_TOKEN=7749511637:AAH-EOLjSombpRtdHA0wQBZ7ojnvbeFlyLo
 ADMIN_ID=206094225
 MOD_CHAT_ID=-1002527730048
+FEEDBACK_CHAT_ID=-1002548882163
 ```
 
 Переменные окружения:
@@ -32,6 +33,7 @@ MOD_CHAT_ID=-1002527730048
 - `BOT_TOKEN` – токен телеграм‑бота
 - `ADMIN_ID` – идентификатор администратора
 - `MOD_CHAT_ID` – ID чата модерации
+- `FEEDBACK_CHAT_ID` – ID чата для обратной связи
 
 После настройки переменных окружения запустите бота командой:
 ```bash

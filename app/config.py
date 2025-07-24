@@ -7,6 +7,7 @@ class Config:
     bot_token: str
     admin_id: int
     mod_chat_id: int
+    feedback_chat_id: int
 
 
 def load_config() -> 'Config':
@@ -15,4 +16,5 @@ def load_config() -> 'Config':
         bot_token=os.getenv("BOT_TOKEN", ""),
         admin_id=int(os.getenv("ADMIN_ID", 0)),
         mod_chat_id=int(os.getenv("MOD_CHAT_ID", 0)),
+        feedback_chat_id=int(os.getenv("FEEDBACK_CHAT_ID", 0)),
     )
