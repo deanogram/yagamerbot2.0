@@ -4,16 +4,20 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 from .suggest import SUGGEST_BUTTON
 from .profile import PROFILE_BUTTON
+from .tournaments import TOURNAMENTS_BUTTON
 from app.utils import add_user
 
 router = Router()
 
 
 menu_kb = ReplyKeyboardMarkup(
-    keyboard=[[
-        KeyboardButton(text=SUGGEST_BUTTON),
-        KeyboardButton(text=PROFILE_BUTTON),
-    ]],
+    keyboard=[
+        [
+            KeyboardButton(text=SUGGEST_BUTTON),
+            KeyboardButton(text=PROFILE_BUTTON),
+        ],
+        [KeyboardButton(text=TOURNAMENTS_BUTTON)],
+    ],
     resize_keyboard=True,
 )
 
@@ -22,6 +26,6 @@ menu_kb = ReplyKeyboardMarkup(
 async def handle_start(message: types.Message):
     add_user(message.from_user)
     await message.answer(
-        "Здравствуйте! Нажмите \"Предложить контент\", чтобы отправить материал на модерацию, или \"Профиль\" для просмотра статистики.",
+        "Здравствуйте! Нажмите \"Предложить контент\", чтобы отправить материал на модерацию, \"Профиль\" для просмотра статистики или \"Турниры\" для участия.",
         reply_markup=menu_kb,
     )

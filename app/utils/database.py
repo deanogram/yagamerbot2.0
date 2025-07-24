@@ -78,3 +78,37 @@ def get_user_stats(user_id: int) -> dict | None:
         cur = conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
         row = cur.fetchone()
         return dict(row) if row else None
+
+TOURNAMENT_DB_PATH = Path(__file__).resolve().parent.parent / "tournaments.db"
+
+
+def init_tournament_db() -> None:
+    """Create table for tournament ratings if it doesn't exist."""
+    with sqlite3.connect(TOURNAMENT_DB_PATH) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ratings (
+                user_id INTEGER PRIMARY KEY,
+                score INTEGER DEFAULT 0
+            )
+            """
+        )
+        conn.commit()
+
+
+def get_tournament_ratings(limit: int = 10) -> list[tuple]:
+    """Return top players with their scores."""
+    with sqlite3.connect(TOURNAMENT_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.execute(
+            "SELECT user_id, score FROM ratings ORDER BY score DESC LIMIT ?",
+            (limit,),
+        )
+        rows = cur.fetchall()
+
+    results = []
+    for idx, row in enumerate(rows, 1):
+        user = get_user_stats(row["user_id"])
+        name = user.get("name") if user else f"User {row['user_id']}"
+        results.append((idx, name, row["score"]))
+    return results
