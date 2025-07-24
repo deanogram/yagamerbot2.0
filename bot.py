@@ -8,6 +8,7 @@ from app.handlers import register_handlers
 from app.utils import (
     init_db,
     init_tournament_db,
+    init_tournament_info_db,
     init_moderation_db,
 )
 
@@ -18,6 +19,7 @@ async def main() -> None:
     config: Config = load_config()
     init_db()
     init_tournament_db()
+    init_tournament_info_db()
     init_moderation_db()
     bot = Bot(config.bot_token)
     dp = Dispatcher()

@@ -129,3 +129,37 @@ def get_tournament_ratings(limit: int = 10) -> list[tuple]:
         name = user.get("name") if user else f"User {row['user_id']}"
         results.append((idx, name, row["score"]))
     return results
+
+
+TOURNAMENT_INFO_DB_PATH = Path(__file__).resolve().parent.parent / "tournaments_info.db"
+
+
+def init_tournament_info_db() -> None:
+    """Create table for tournament info."""
+    with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tournaments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                game TEXT,
+                type TEXT,
+                date TEXT
+            )
+            """
+        )
+        conn.commit()
+
+
+def add_tournament(game: str, type_: str, date: str) -> None:
+    with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
+        conn.execute(
+            "INSERT INTO tournaments(game, type, date) VALUES(?,?,?)",
+            (game, type_, date),
+        )
+        conn.commit()
+
+
+def get_tournaments() -> list[tuple]:
+    with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
+        cur = conn.execute("SELECT id, game, type, date FROM tournaments ORDER BY id DESC")
+        return cur.fetchall()

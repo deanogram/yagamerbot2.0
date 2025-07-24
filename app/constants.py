@@ -8,3 +8,8 @@ FEEDBACK_BUTTON = "\U0001F4AC Обратная связь"
 PROPOSAL_BUTTON = "Предложения"
 QUESTION_BUTTON = "Вопрос"
 COMPLAINT_BUTTON = "Жалоба"
+
+CREATE_TOURNAMENT_BUTTON = "Создать турнир"
+MUTED_LIST_BUTTON = "Список мута"
+BANNED_LIST_BUTTON = "Список забаненных"
+ASSIGN_ROLE_BUTTON = "Назначить админа/модератора"
