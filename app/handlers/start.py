@@ -8,6 +8,7 @@ from app.constants import (
     TOURNAMENTS_BUTTON,
     FEEDBACK_BUTTON,
     CREATE_TOURNAMENT_BUTTON,
+    MANAGE_TOURNAMENTS_BUTTON,
     MUTED_LIST_BUTTON,
     BANNED_LIST_BUTTON,
     ASSIGN_ROLE_BUTTON,
@@ -40,6 +41,7 @@ menu_kb = ReplyKeyboardMarkup(
 admin_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text=CREATE_TOURNAMENT_BUTTON)],
+        [KeyboardButton(text=MANAGE_TOURNAMENTS_BUTTON)],
         [KeyboardButton(text=MUTED_LIST_BUTTON), KeyboardButton(text=BANNED_LIST_BUTTON)],
     ],
     resize_keyboard=True,
@@ -55,6 +57,7 @@ moderator_kb = ReplyKeyboardMarkup(
 main_admin_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text=CREATE_TOURNAMENT_BUTTON)],
+        [KeyboardButton(text=MANAGE_TOURNAMENTS_BUTTON)],
         [KeyboardButton(text=MUTED_LIST_BUTTON), KeyboardButton(text=BANNED_LIST_BUTTON)],
         [KeyboardButton(text=ASSIGN_ROLE_BUTTON)],
     ],

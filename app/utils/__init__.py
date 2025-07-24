@@ -11,6 +11,8 @@ from .database import (
     init_tournament_info_db,
     add_tournament,
     get_tournaments,
+    update_tournament,
+    delete_tournament,
 )
 from .moderation import (
     init_moderation_db,

@@ -7,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from app.config import Config
 from app.constants import (
     CREATE_TOURNAMENT_BUTTON,
+    MANAGE_TOURNAMENTS_BUTTON,
     MUTED_LIST_BUTTON,
     BANNED_LIST_BUTTON,
     ASSIGN_ROLE_BUTTON,
@@ -14,6 +15,9 @@ from app.constants import (
 from app.utils import (
     get_all_user_ids,
     add_tournament,
+    update_tournament,
+    delete_tournament,
+    get_tournaments,
     get_all_mutes,
     get_all_bans,
     unmute_user,
@@ -29,6 +33,13 @@ _config: Config
 
 
 class TournamentCreate(StatesGroup):
+    waiting_game = State()
+    waiting_type = State()
+    waiting_date = State()
+    waiting_prize = State()
+
+
+class TournamentEdit(StatesGroup):
     waiting_game = State()
     waiting_type = State()
     waiting_date = State()
@@ -117,6 +128,25 @@ async def save_tournament(message: types.Message, state: FSMContext) -> None:
     await state.clear()
 
 
+@router.message(F.text == MANAGE_TOURNAMENTS_BUTTON)
+async def manage_tournaments(message: types.Message) -> None:
+    if not _is_admin(message.from_user.id):
+        return
+    tournaments = get_tournaments()
+    if not tournaments:
+        await message.answer("Турниры не запланированы")
+        return
+    for tid, game, type_, date, prize in tournaments:
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Редактировать", callback_data=f"edit_tour:{tid}")],
+                [InlineKeyboardButton(text="Удалить", callback_data=f"del_tour:{tid}")],
+            ]
+        )
+        text = f"{tid}. {game} {type_} — {date}, призовой фонд: {prize}"
+        await message.answer(text, reply_markup=kb)
+
+
 @router.message(F.text == MUTED_LIST_BUTTON)
 async def list_mutes(message: types.Message) -> None:
     if not _is_staff(message.from_user.id):
@@ -145,6 +175,72 @@ async def list_bans(message: types.Message) -> None:
             inline_keyboard=[[InlineKeyboardButton(text="Разбанить", callback_data=f"unban:{user_id}")]]
         )
         await message.answer(str(user_id), reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("edit_tour:"))
+async def cb_edit_tournament(callback: types.CallbackQuery, state: FSMContext) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    tid = int(callback.data.split(":", 1)[1])
+    await state.update_data(edit_id=tid)
+    await state.set_state(TournamentEdit.waiting_game)
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="CS2")], [KeyboardButton(text="Dota 2")], [KeyboardButton(text="Valorant")]],
+        resize_keyboard=True,
+    )
+    await callback.message.answer("Выберите игру", reply_markup=kb)
+    await callback.answer()
+
+
+@router.message(TournamentEdit.waiting_game)
+async def edit_choose_type(message: types.Message, state: FSMContext) -> None:
+    await state.update_data(game=message.text)
+    await state.set_state(TournamentEdit.waiting_type)
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="1 vs 1")], [KeyboardButton(text="2 vs 2")], [KeyboardButton(text="5 vs 5")]],
+        resize_keyboard=True,
+    )
+    await message.answer("Выберите формат", reply_markup=kb)
+
+
+@router.message(TournamentEdit.waiting_type)
+async def edit_choose_date(message: types.Message, state: FSMContext) -> None:
+    await state.update_data(type=message.text)
+    await state.set_state(TournamentEdit.waiting_date)
+    await message.answer("Введите дату турнира (например, 01.01.2024)")
+
+
+@router.message(TournamentEdit.waiting_date)
+async def edit_ask_prize(message: types.Message, state: FSMContext) -> None:
+    await state.update_data(date=message.text)
+    await state.set_state(TournamentEdit.waiting_prize)
+    await message.answer("Введите призовой фонд")
+
+
+@router.message(TournamentEdit.waiting_prize)
+async def save_edit(message: types.Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    update_tournament(
+        data.get("edit_id"),
+        data.get("game"),
+        data.get("type"),
+        data.get("date"),
+        message.text,
+    )
+    await message.answer("Турнир обновлен")
+    await state.clear()
+
+
+@router.callback_query(F.data.startswith("del_tour:"))
+async def cb_delete_tournament(callback: types.CallbackQuery) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    tid = int(callback.data.split(":", 1)[1])
+    delete_tournament(tid)
+    await callback.answer("Турнир удален")
+    await callback.message.edit_text("Удален")
 
 
 @router.callback_query(F.data.startswith("unmute:"))

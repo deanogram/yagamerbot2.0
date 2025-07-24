@@ -171,3 +171,24 @@ def get_tournaments() -> list[tuple]:
             "SELECT id, game, type, date, prize FROM tournaments ORDER BY id DESC"
         )
         return cur.fetchall()
+
+
+def update_tournament(tid: int, game: str, type_: str, date: str, prize: str) -> None:
+    """Update tournament information by id."""
+    with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
+        conn.execute(
+            """
+            UPDATE tournaments
+            SET game=?, type=?, date=?, prize=?
+            WHERE id=?
+            """,
+            (game, type_, date, prize, tid),
+        )
+        conn.commit()
+
+
+def delete_tournament(tid: int) -> None:
+    """Remove tournament from the database."""
+    with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
+        conn.execute("DELETE FROM tournaments WHERE id=?", (tid,))
+        conn.commit()
