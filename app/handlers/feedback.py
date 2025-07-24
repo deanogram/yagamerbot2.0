@@ -57,10 +57,22 @@ async def feedback_menu(message: types.Message) -> None:
     )
 
 
+@router.message(F.text == BACK_BUTTON)
+async def feedback_back(message: types.Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("Главное меню", reply_markup=start.menu_kb)
+
+
 @router.message(F.text == PROPOSAL_BUTTON)
 async def ask_proposal(message: types.Message, state: FSMContext) -> None:
     await message.answer("Что хочешь предложить, приятель?", reply_markup=cancel_kb)
     await state.set_state(FeedbackState.waiting_proposal)
+
+
+@router.message(FeedbackState.waiting_proposal, F.text == BACK_BUTTON)
+async def cancel_proposal(message: types.Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("Главное меню", reply_markup=start.menu_kb)
 
 
 @router.message(FeedbackState.waiting_proposal)
@@ -81,6 +93,12 @@ async def handle_proposal(message: types.Message, state: FSMContext) -> None:
 async def ask_question(message: types.Message, state: FSMContext) -> None:
     await message.answer("Задай свой вопрос", reply_markup=cancel_kb)
     await state.set_state(FeedbackState.waiting_question)
+
+
+@router.message(FeedbackState.waiting_question, F.text == BACK_BUTTON)
+async def cancel_question(message: types.Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("Главное меню", reply_markup=start.menu_kb)
 
 
 @router.message(FeedbackState.waiting_question)
@@ -104,6 +122,12 @@ async def ask_complaint(message: types.Message, state: FSMContext) -> None:
         reply_markup=cancel_kb,
     )
     await state.set_state(FeedbackState.waiting_complaint)
+
+
+@router.message(FeedbackState.waiting_complaint, F.text == BACK_BUTTON)
+async def cancel_complaint(message: types.Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("Главное меню", reply_markup=start.menu_kb)
 
 
 @router.message(FeedbackState.waiting_complaint)
