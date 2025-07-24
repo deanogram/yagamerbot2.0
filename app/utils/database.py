@@ -71,6 +71,16 @@ def record_result(user_id: int, approved: bool) -> None:
         conn.commit()
 
 
+def add_xp(user_id: int, amount: int) -> None:
+    """Increase user's XP by the given amount."""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "UPDATE users SET xp = xp + ? WHERE user_id=?",
+            (amount, user_id),
+        )
+        conn.commit()
+
+
 def get_user_stats(user_id: int) -> dict | None:
     """Return statistics for a user."""
     with sqlite3.connect(DB_PATH) as conn:
@@ -78,6 +88,13 @@ def get_user_stats(user_id: int) -> dict | None:
         cur = conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
         row = cur.fetchone()
         return dict(row) if row else None
+
+
+def get_all_user_ids() -> list[int]:
+    """Return list of all user IDs."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.execute("SELECT user_id FROM users")
+        return [row[0] for row in cur.fetchall()]
 
 TOURNAMENT_DB_PATH = Path(__file__).resolve().parent.parent / "tournaments.db"
 

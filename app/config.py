@@ -8,6 +8,7 @@ class Config:
     admin_id: int
     mod_chat_id: int
     feedback_chat_id: int
+    forum_chat_id: int
 
 
 def load_config() -> 'Config':
@@ -17,4 +18,5 @@ def load_config() -> 'Config':
         admin_id=int(os.getenv("ADMIN_ID", 0)),
         mod_chat_id=int(os.getenv("MOD_CHAT_ID", 0)),
         feedback_chat_id=int(os.getenv("FEEDBACK_CHAT_ID", 0)),
+        forum_chat_id=int(os.getenv("FORUM_CHAT_ID", 0)),
     )
