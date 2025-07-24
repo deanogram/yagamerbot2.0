@@ -29,12 +29,22 @@ def setup(config: Config) -> None:
 async def handle_new_member(event: types.ChatMemberUpdated) -> None:
     if event.chat.id != _config.forum_chat_id:
         return
-    if event.new_chat_member.status in {ChatMemberStatus.MEMBER, ChatMemberStatus.RESTRICTED}:
-        user = event.from_user
+    if (
+        event.new_chat_member.status in {ChatMemberStatus.MEMBER, ChatMemberStatus.RESTRICTED}
+        and event.old_chat_member.status in {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
+    ):
+        user = event.new_chat_member.user
         if user.is_bot:
             await event.bot.ban_chat_member(event.chat.id, user.id)
             return
         add_user(user)
+        try:
+            await event.bot.send_message(
+                event.chat.id,
+                f"Добро пожаловать, {user.full_name}!",
+            )
+        except Exception:
+            pass
 
 
 @router.message(lambda m: m.chat.id == _config.forum_chat_id)
