@@ -6,6 +6,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 from app.utils.spam import check_message_allowed
+from app.utils import add_user, increment_submission, record_result
 from app.config import Config
 
 router = Router()
@@ -30,6 +31,7 @@ def setup(config: Config):
 @router.message(Command("suggest"))
 @router.message(F.text == SUGGEST_BUTTON)
 async def cmd_suggest(message: types.Message, state: FSMContext):
+    add_user(message.from_user)
     await state.set_state(Suggest.waiting_for_content)
     await message.answer(
         "Отправьте контент (фото, видео, текст, гиф или музыку) для модерации."
@@ -61,6 +63,9 @@ async def receive_content(message: types.Message, state: FSMContext):
         _config.mod_chat_id,
         reply_markup=kb,
     )
+
+    add_user(message.from_user)
+    increment_submission(message.from_user.id)
 
     suggestions[mod_message.message_id] = {
         "user_id": message.chat.id,
@@ -114,6 +119,7 @@ async def moderator_comment(message: types.Message):
         answer += f"\nКомментарий модератора: {text}"
 
     await message.bot.send_message(entry["user_id"], answer)
+    record_result(entry["user_id"], decision)
     waiting_comments.pop(message.from_user.id, None)
     await message.reply("Ответ отправлен пользователю.")
 
@@ -129,4 +135,5 @@ async def skip_comment(callback: types.CallbackQuery):
     decision = entry["decision"] == "approve"
     text = "Ваш контент принят!" if decision else "Ваш контент отклонен."
     await callback.bot.send_message(entry["user_id"], text)
+    record_result(entry["user_id"], decision)
     await callback.answer("Ответ отправлен пользователю.")

@@ -5,12 +5,14 @@ from aiogram import Bot, Dispatcher
 
 from app.config import load_config, Config
 from app.handlers import register_handlers
+from app.utils import init_db
 
 logging.basicConfig(level=logging.INFO)
 
 
 async def main() -> None:
     config: Config = load_config()
+    init_db()
     bot = Bot(config.bot_token)
     dp = Dispatcher()
 
