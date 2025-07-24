@@ -5,6 +5,7 @@ from . import start, suggest, misc, profile, tournaments, feedback, admin, forum
 
 
 def register_handlers(dp: Dispatcher, config: Config) -> None:
+    start.setup(config)
     dp.include_router(start.router)
     suggest.setup(config)
     dp.include_router(suggest.router)

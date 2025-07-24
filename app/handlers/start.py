@@ -7,10 +7,22 @@ from app.constants import (
     PROFILE_BUTTON,
     TOURNAMENTS_BUTTON,
     FEEDBACK_BUTTON,
+    CREATE_TOURNAMENT_BUTTON,
+    MUTED_LIST_BUTTON,
+    BANNED_LIST_BUTTON,
+    ASSIGN_ROLE_BUTTON,
 )
-from app.utils import add_user
+from app.utils import add_user, get_admins, get_moderators
+from app.config import Config
 
 router = Router()
+
+_config: Config
+
+
+def setup(config: Config) -> None:
+    global _config
+    _config = config
 
 
 menu_kb = ReplyKeyboardMarkup(
@@ -25,11 +37,48 @@ menu_kb = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+admin_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text=CREATE_TOURNAMENT_BUTTON)],
+        [KeyboardButton(text=MUTED_LIST_BUTTON), KeyboardButton(text=BANNED_LIST_BUTTON)],
+    ],
+    resize_keyboard=True,
+)
+
+moderator_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text=MUTED_LIST_BUTTON), KeyboardButton(text=BANNED_LIST_BUTTON)],
+    ],
+    resize_keyboard=True,
+)
+
+main_admin_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text=CREATE_TOURNAMENT_BUTTON)],
+        [KeyboardButton(text=MUTED_LIST_BUTTON), KeyboardButton(text=BANNED_LIST_BUTTON)],
+        [KeyboardButton(text=ASSIGN_ROLE_BUTTON)],
+    ],
+    resize_keyboard=True,
+)
+
 
 @router.message(CommandStart())
 async def handle_start(message: types.Message):
     add_user(message.from_user)
-    await message.answer(
-        "Здравствуйте! Нажмите \"Предложить контент\", чтобы отправить материал на модерацию, \"Профиль\" для просмотра статистики или \"Турниры\" для участия.",
-        reply_markup=menu_kb,
-    )
+    user_id = message.from_user.id
+    if user_id == _config.admin_id:
+        kb = main_admin_kb
+        text = "Главное меню администратора"
+    elif user_id in get_admins():
+        kb = admin_kb
+        text = "Меню администратора"
+    elif user_id in get_moderators():
+        kb = moderator_kb
+        text = "Меню модератора"
+    else:
+        kb = menu_kb
+        text = (
+            "Здравствуйте! Нажмите \"Предложить контент\", чтобы отправить материал на модерацию, \"Профиль\" для просмотра статистики или \"Турниры\" для участия."
+        )
+
+    await message.answer(text, reply_markup=kb)

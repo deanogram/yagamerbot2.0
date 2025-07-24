@@ -2,7 +2,7 @@ from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-from app.utils import get_tournament_ratings
+from app.utils import get_tournament_ratings, get_tournaments
 from app.constants import (
     TOURNAMENTS_BUTTON,
     JOIN_BUTTON,
@@ -40,13 +40,14 @@ async def tournaments_back(message: types.Message) -> None:
 
 @router.message(F.text == JOIN_BUTTON)
 async def show_tournaments(message: types.Message) -> None:
-    text = (
-        "Актуальные турниры:\n"
-        "- CS2\n"
-        "- Dota 2\n"
-        "- Valorant"
-    )
-    await message.answer(text)
+    tournaments = get_tournaments()
+    if not tournaments:
+        await message.answer("Турниры не запланированы")
+        return
+    lines = ["Актуальные турниры:"]
+    for tid, game, type_, date in tournaments:
+        lines.append(f"{tid}. {game} {type_} — {date}")
+    await message.answer("\n".join(lines))
 
 
 @router.message(F.text == RATING_BUTTON)

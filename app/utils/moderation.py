@@ -59,6 +59,20 @@ def init_moderation_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS admins(
+                user_id INTEGER PRIMARY KEY
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS moderators(
+                user_id INTEGER PRIMARY KEY
+            )
+            """
+        )
         conn.commit()
 
 
@@ -180,3 +194,57 @@ def is_banned(user_id: int) -> bool:
     with sqlite3.connect(MOD_DB_PATH) as conn:
         cur = conn.execute("SELECT 1 FROM bans WHERE user_id=?", (user_id,))
         return cur.fetchone() is not None
+
+
+def get_all_mutes() -> list[tuple[int, int]]:
+    with sqlite3.connect(MOD_DB_PATH) as conn:
+        cur = conn.execute("SELECT user_id, until FROM mutes")
+        return cur.fetchall()
+
+
+def get_all_bans() -> list[int]:
+    with sqlite3.connect(MOD_DB_PATH) as conn:
+        cur = conn.execute("SELECT user_id FROM bans")
+        return [row[0] for row in cur.fetchall()]
+
+
+def add_admin(user_id: int) -> None:
+    with sqlite3.connect(MOD_DB_PATH) as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO admins(user_id) VALUES(?)",
+            (user_id,),
+        )
+        conn.commit()
+
+
+def remove_admin(user_id: int) -> None:
+    with sqlite3.connect(MOD_DB_PATH) as conn:
+        conn.execute("DELETE FROM admins WHERE user_id=?", (user_id,))
+        conn.commit()
+
+
+def get_admins() -> list[int]:
+    with sqlite3.connect(MOD_DB_PATH) as conn:
+        cur = conn.execute("SELECT user_id FROM admins")
+        return [row[0] for row in cur.fetchall()]
+
+
+def add_moderator(user_id: int) -> None:
+    with sqlite3.connect(MOD_DB_PATH) as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO moderators(user_id) VALUES(?)",
+            (user_id,),
+        )
+        conn.commit()
+
+
+def remove_moderator(user_id: int) -> None:
+    with sqlite3.connect(MOD_DB_PATH) as conn:
+        conn.execute("DELETE FROM moderators WHERE user_id=?", (user_id,))
+        conn.commit()
+
+
+def get_moderators() -> list[int]:
+    with sqlite3.connect(MOD_DB_PATH) as conn:
+        cur = conn.execute("SELECT user_id FROM moderators")
+        return [row[0] for row in cur.fetchall()]

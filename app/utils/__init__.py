@@ -8,6 +8,9 @@ from .database import (
     get_all_user_ids,
     init_tournament_db,
     get_tournament_ratings,
+    init_tournament_info_db,
+    add_tournament,
+    get_tournaments,
 )
 from .moderation import (
     init_moderation_db,
@@ -22,4 +25,12 @@ from .moderation import (
     ban_user,
     unban_user,
     is_banned,
+    get_all_mutes,
+    get_all_bans,
+    add_admin,
+    remove_admin,
+    get_admins,
+    add_moderator,
+    remove_moderator,
+    get_moderators,
 )
