@@ -32,6 +32,7 @@ class TournamentCreate(StatesGroup):
     waiting_game = State()
     waiting_type = State()
     waiting_date = State()
+    waiting_prize = State()
 
 
 def setup(config: Config) -> None:
@@ -97,9 +98,21 @@ async def choose_date(message: types.Message, state: FSMContext) -> None:
 
 
 @router.message(TournamentCreate.waiting_date)
+async def ask_prize(message: types.Message, state: FSMContext) -> None:
+    await state.update_data(date=message.text)
+    await state.set_state(TournamentCreate.waiting_prize)
+    await message.answer("Введите призовой фонд")
+
+
+@router.message(TournamentCreate.waiting_prize)
 async def save_tournament(message: types.Message, state: FSMContext) -> None:
     data = await state.get_data()
-    add_tournament(data.get("game"), data.get("type"), message.text)
+    add_tournament(
+        data.get("game"),
+        data.get("type"),
+        data.get("date"),
+        message.text,
+    )
     await message.answer("Турнир создан")
     await state.clear()
 

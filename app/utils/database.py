@@ -143,23 +143,31 @@ def init_tournament_info_db() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 game TEXT,
                 type TEXT,
-                date TEXT
+                date TEXT,
+                prize TEXT
             )
             """
         )
+        # try to add missing column "prize" for older versions
+        try:
+            conn.execute("ALTER TABLE tournaments ADD COLUMN prize TEXT")
+        except sqlite3.OperationalError:
+            pass
         conn.commit()
 
 
-def add_tournament(game: str, type_: str, date: str) -> None:
+def add_tournament(game: str, type_: str, date: str, prize: str) -> None:
     with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
         conn.execute(
-            "INSERT INTO tournaments(game, type, date) VALUES(?,?,?)",
-            (game, type_, date),
+            "INSERT INTO tournaments(game, type, date, prize) VALUES(?,?,?,?)",
+            (game, type_, date, prize),
         )
         conn.commit()
 
 
 def get_tournaments() -> list[tuple]:
     with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
-        cur = conn.execute("SELECT id, game, type, date FROM tournaments ORDER BY id DESC")
+        cur = conn.execute(
+            "SELECT id, game, type, date, prize FROM tournaments ORDER BY id DESC"
+        )
         return cur.fetchall()

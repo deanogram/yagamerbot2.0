@@ -45,8 +45,8 @@ async def show_tournaments(message: types.Message) -> None:
         await message.answer("Турниры не запланированы")
         return
     lines = ["Актуальные турниры:"]
-    for tid, game, type_, date in tournaments:
-        lines.append(f"{tid}. {game} {type_} — {date}")
+    for tid, game, type_, date, prize in tournaments:
+        lines.append(f"{tid}. {game} {type_} — {date}, призовой фонд: {prize}")
     await message.answer("\n".join(lines))
 
 
