@@ -53,7 +53,7 @@ entries: dict[int, int] = {}
 @router.message(F.text == FEEDBACK_BUTTON)
 async def feedback_menu(message: types.Message) -> None:
     await message.answer(
-        "Есть какие то идеи по улучшению, комьюнити, жалоба или вопрос, не стесняйся - пиши",
+        "\U0001F4AC Есть какие-то идеи по улучшению, жалоба или вопрос? Пиши!",
         reply_markup=feedback_kb,
     )
 
@@ -66,7 +66,7 @@ async def feedback_back(message: types.Message, state: FSMContext) -> None:
 
 @router.message(F.text == PROPOSAL_BUTTON)
 async def ask_proposal(message: types.Message, state: FSMContext) -> None:
-    await message.answer("Что хочешь предложить, приятель?", reply_markup=cancel_kb)
+    await message.answer("\U0001F4A1 Что хочешь предложить, приятель?", reply_markup=cancel_kb)
     await state.set_state(FeedbackState.waiting_proposal)
 
 
@@ -96,7 +96,7 @@ async def handle_proposal(message: types.Message, state: FSMContext) -> None:
 
 @router.message(F.text == QUESTION_BUTTON)
 async def ask_question(message: types.Message, state: FSMContext) -> None:
-    await message.answer("Задай свой вопрос", reply_markup=cancel_kb)
+    await message.answer("\u2753 Задай свой вопрос", reply_markup=cancel_kb)
     await state.set_state(FeedbackState.waiting_question)
 
 
@@ -127,7 +127,7 @@ async def handle_question(message: types.Message, state: FSMContext) -> None:
 @router.message(F.text == COMPLAINT_BUTTON)
 async def ask_complaint(message: types.Message, state: FSMContext) -> None:
     await message.answer(
-        "Воу воу, приятель, что не так? Расскажи подробнее",
+        "\U0001F620 Воу воу, приятель, что не так? Расскажи подробнее",
         reply_markup=cancel_kb,
     )
     await state.set_state(FeedbackState.waiting_complaint)

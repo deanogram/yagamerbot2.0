@@ -37,6 +37,7 @@ class TournamentCreate(StatesGroup):
     waiting_type = State()
     waiting_date = State()
     waiting_prize = State()
+    waiting_preview = State()
 
 
 class TournamentEdit(StatesGroup):
@@ -44,6 +45,7 @@ class TournamentEdit(StatesGroup):
     waiting_type = State()
     waiting_date = State()
     waiting_prize = State()
+    waiting_preview = State()
 
 
 def setup(config: Config) -> None:
@@ -87,7 +89,7 @@ async def create_tournament_start(message: types.Message, state: FSMContext) -> 
         keyboard=[[KeyboardButton(text="CS2")], [KeyboardButton(text="Dota 2")], [KeyboardButton(text="Valorant")]],
         resize_keyboard=True,
     )
-    await message.answer("Выберите игру", reply_markup=kb)
+    await message.answer("\U0001F3AE Выберите игру", reply_markup=kb)
 
 
 @router.message(TournamentCreate.waiting_game)
@@ -98,33 +100,45 @@ async def choose_type(message: types.Message, state: FSMContext) -> None:
         keyboard=[[KeyboardButton(text="1 vs 1")], [KeyboardButton(text="2 vs 2")], [KeyboardButton(text="5 vs 5")]],
         resize_keyboard=True,
     )
-    await message.answer("Выберите формат", reply_markup=kb)
+    await message.answer("\U0001F4DD Выберите формат", reply_markup=kb)
 
 
 @router.message(TournamentCreate.waiting_type)
 async def choose_date(message: types.Message, state: FSMContext) -> None:
     await state.update_data(type=message.text)
     await state.set_state(TournamentCreate.waiting_date)
-    await message.answer("Введите дату турнира (например, 01.01.2024)")
+    await message.answer("\U0001F4C5 Введите дату турнира (например, 01.01.2024)")
 
 
 @router.message(TournamentCreate.waiting_date)
 async def ask_prize(message: types.Message, state: FSMContext) -> None:
     await state.update_data(date=message.text)
     await state.set_state(TournamentCreate.waiting_prize)
-    await message.answer("Введите призовой фонд")
+    await message.answer("\U0001F4B0 Введите призовой фонд")
 
 
 @router.message(TournamentCreate.waiting_prize)
+async def ask_preview(message: types.Message, state: FSMContext) -> None:
+    await state.update_data(prize=message.text)
+    await state.set_state(TournamentCreate.waiting_preview)
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="Пропустить")]],
+        resize_keyboard=True,
+    )
+    await message.answer("Отправьте фото-превью турнира или нажмите 'Пропустить'", reply_markup=kb)
+
+
+@router.message(TournamentCreate.waiting_preview)
 async def save_tournament(message: types.Message, state: FSMContext) -> None:
     data = await state.get_data()
     add_tournament(
         data.get("game"),
         data.get("type"),
         data.get("date"),
-        message.text,
+        data.get("prize"),
+        message.photo[-1].file_id if message.photo else None if message.text == "Пропустить" else message.text,
     )
-    await message.answer("Турнир создан")
+    await message.answer("\u2705 Турнир создан")
     await state.clear()
 
 
@@ -136,7 +150,7 @@ async def manage_tournaments(message: types.Message) -> None:
     if not tournaments:
         await message.answer("Турниры не запланированы")
         return
-    for tid, game, type_, date, prize in tournaments:
+    for tid, game, type_, date, prize, preview in tournaments:
         kb = InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="Редактировать", callback_data=f"edit_tour:{tid}")],
@@ -144,7 +158,10 @@ async def manage_tournaments(message: types.Message) -> None:
             ]
         )
         text = f"{tid}. {game} {type_} — {date}, призовой фонд: {prize}"
-        await message.answer(text, reply_markup=kb)
+        if preview:
+            await message.bot.send_photo(message.chat.id, preview, caption=text, reply_markup=kb)
+        else:
+            await message.answer(text, reply_markup=kb)
 
 
 @router.message(F.text == MUTED_LIST_BUTTON)
@@ -189,7 +206,7 @@ async def cb_edit_tournament(callback: types.CallbackQuery, state: FSMContext) -
         keyboard=[[KeyboardButton(text="CS2")], [KeyboardButton(text="Dota 2")], [KeyboardButton(text="Valorant")]],
         resize_keyboard=True,
     )
-    await callback.message.answer("Выберите игру", reply_markup=kb)
+    await callback.message.answer("\U0001F3AE Выберите игру", reply_markup=kb)
     await callback.answer()
 
 
@@ -201,24 +218,38 @@ async def edit_choose_type(message: types.Message, state: FSMContext) -> None:
         keyboard=[[KeyboardButton(text="1 vs 1")], [KeyboardButton(text="2 vs 2")], [KeyboardButton(text="5 vs 5")]],
         resize_keyboard=True,
     )
-    await message.answer("Выберите формат", reply_markup=kb)
+    await message.answer("\U0001F4DD Выберите формат", reply_markup=kb)
 
 
 @router.message(TournamentEdit.waiting_type)
 async def edit_choose_date(message: types.Message, state: FSMContext) -> None:
     await state.update_data(type=message.text)
     await state.set_state(TournamentEdit.waiting_date)
-    await message.answer("Введите дату турнира (например, 01.01.2024)")
+    await message.answer("\U0001F4C5 Введите дату турнира (например, 01.01.2024)")
 
 
 @router.message(TournamentEdit.waiting_date)
 async def edit_ask_prize(message: types.Message, state: FSMContext) -> None:
     await state.update_data(date=message.text)
     await state.set_state(TournamentEdit.waiting_prize)
-    await message.answer("Введите призовой фонд")
+    await message.answer("\U0001F4B0 Введите призовой фонд")
 
 
 @router.message(TournamentEdit.waiting_prize)
+async def edit_ask_preview(message: types.Message, state: FSMContext) -> None:
+    await state.update_data(prize=message.text)
+    await state.set_state(TournamentEdit.waiting_preview)
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="Пропустить")]],
+        resize_keyboard=True,
+    )
+    await message.answer(
+        "Отправьте новое фото-превью или нажмите 'Пропустить'",
+        reply_markup=kb,
+    )
+
+
+@router.message(TournamentEdit.waiting_preview)
 async def save_edit(message: types.Message, state: FSMContext) -> None:
     data = await state.get_data()
     update_tournament(
@@ -226,9 +257,10 @@ async def save_edit(message: types.Message, state: FSMContext) -> None:
         data.get("game"),
         data.get("type"),
         data.get("date"),
-        message.text,
+        data.get("prize"),
+        message.photo[-1].file_id if message.photo else None if message.text == "Пропустить" else message.text,
     )
-    await message.answer("Турнир обновлен")
+    await message.answer("\u2705 Турнир обновлен")
     await state.clear()
 
 

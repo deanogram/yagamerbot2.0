@@ -144,7 +144,8 @@ def init_tournament_info_db() -> None:
                 game TEXT,
                 type TEXT,
                 date TEXT,
-                prize TEXT
+                prize TEXT,
+                preview TEXT
             )
             """
         )
@@ -153,14 +154,19 @@ def init_tournament_info_db() -> None:
             conn.execute("ALTER TABLE tournaments ADD COLUMN prize TEXT")
         except sqlite3.OperationalError:
             pass
+        # try to add missing column "preview" for older versions
+        try:
+            conn.execute("ALTER TABLE tournaments ADD COLUMN preview TEXT")
+        except sqlite3.OperationalError:
+            pass
         conn.commit()
 
 
-def add_tournament(game: str, type_: str, date: str, prize: str) -> None:
+def add_tournament(game: str, type_: str, date: str, prize: str, preview: str | None) -> None:
     with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
         conn.execute(
-            "INSERT INTO tournaments(game, type, date, prize) VALUES(?,?,?,?)",
-            (game, type_, date, prize),
+            "INSERT INTO tournaments(game, type, date, prize, preview) VALUES(?,?,?,?,?)",
+            (game, type_, date, prize, preview),
         )
         conn.commit()
 
@@ -168,21 +174,23 @@ def add_tournament(game: str, type_: str, date: str, prize: str) -> None:
 def get_tournaments() -> list[tuple]:
     with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
         cur = conn.execute(
-            "SELECT id, game, type, date, prize FROM tournaments ORDER BY id DESC"
+            "SELECT id, game, type, date, prize, preview FROM tournaments ORDER BY id DESC"
         )
         return cur.fetchall()
 
 
-def update_tournament(tid: int, game: str, type_: str, date: str, prize: str) -> None:
+def update_tournament(
+    tid: int, game: str, type_: str, date: str, prize: str, preview: str | None
+) -> None:
     """Update tournament information by id."""
     with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
         conn.execute(
             """
             UPDATE tournaments
-            SET game=?, type=?, date=?, prize=?
+            SET game=?, type=?, date=?, prize=?, preview=?
             WHERE id=?
             """,
-            (game, type_, date, prize, tid),
+            (game, type_, date, prize, preview, tid),
         )
         conn.commit()
 
