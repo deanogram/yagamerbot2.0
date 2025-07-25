@@ -71,17 +71,17 @@ async def handle_start(message: types.Message):
     user_id = message.from_user.id
     if user_id == _config.admin_id:
         kb = main_admin_kb
-        text = "Главное меню администратора"
+        text = "\U0001F4DD Главное меню администратора"
     elif user_id in get_admins():
         kb = admin_kb
-        text = "Меню администратора"
+        text = "\U0001F4DD Меню администратора"
     elif user_id in get_moderators():
         kb = moderator_kb
-        text = "Меню модератора"
+        text = "\U0001F4DD Меню модератора"
     else:
         kb = menu_kb
         text = (
-            "Здравствуйте! Нажмите \"Предложить контент\", чтобы отправить материал на модерацию, \"Профиль\" для просмотра статистики или \"Турниры\" для участия."
+            "\U0001F44B Здравствуйте! Нажмите \"Предложить контент\", чтобы отправить материал на модерацию, \"Профиль\" для просмотра статистики или \"Турниры\" для участия."
         )
 
     await message.answer(text, reply_markup=kb)

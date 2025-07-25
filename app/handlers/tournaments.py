@@ -28,7 +28,7 @@ tournament_kb = ReplyKeyboardMarkup(
 @router.message(F.text == TOURNAMENTS_BUTTON)
 async def tournaments_menu(message: types.Message) -> None:
     await message.answer(
-        "Добро пожаловать в турнирную ЯGAMER. Участвуй, побеждай и получи удовольствие!",
+        "\U0001F3C1 Добро пожаловать в турнирную ЯGAMER. Участвуй и побеждай!",
         reply_markup=tournament_kb,
     )
 
@@ -42,22 +42,25 @@ async def tournaments_back(message: types.Message) -> None:
 async def show_tournaments(message: types.Message) -> None:
     tournaments = get_tournaments()
     if not tournaments:
-        await message.answer("Турниры не запланированы")
+        await message.answer("\u2753 Турниры не запланированы")
         return
-    lines = ["Актуальные турниры:"]
-    for tid, game, type_, date, prize in tournaments:
-        lines.append(f"{tid}. {game} {type_} — {date}, призовой фонд: {prize}")
-    await message.answer("\n".join(lines))
+    await message.answer("\U0001F4C5 Актуальные турниры:")
+    for tid, game, type_, date, prize, preview in tournaments:
+        text = f"{tid}. {game} {type_} — {date}, призовой фонд: {prize}"
+        if preview:
+            await message.bot.send_photo(message.chat.id, preview, caption=text)
+        else:
+            await message.answer(text)
 
 
 @router.message(F.text == RATING_BUTTON)
 async def show_rating(message: types.Message) -> None:
     ratings = get_tournament_ratings()
     if not ratings:
-        await message.answer("Рейтинг пока пуст.")
+        await message.answer("\u2753 Рейтинг пока пуст.")
         return
 
-    lines = ["Рейтинг игроков:"]
+    lines = ["\U0001F3C6 Рейтинг игроков:"]
     for rank, name, score in ratings:
         lines.append(f"{rank}. {name} — {score}")
     await message.answer("\n".join(lines))
