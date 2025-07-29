@@ -13,6 +13,8 @@ from .database import (
     get_tournaments,
     update_tournament,
     delete_tournament,
+    add_participant,
+    get_participants,
 )
 from .moderation import (
     init_moderation_db,
