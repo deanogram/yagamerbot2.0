@@ -1,7 +1,14 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
 
-from app.utils import add_user, get_user_stats, get_warnings
+from app.utils import (
+    add_user,
+    get_user_stats,
+    get_warnings,
+    record_message,
+    record_sent,
+    cleanup,
+)
 from app.constants import PROFILE_BUTTON
 from . import start
 
@@ -29,6 +36,8 @@ def get_rank(xp: int) -> str:
 @router.message(Command("profile"))
 @router.message(F.text == PROFILE_BUTTON)
 async def handle_profile(message: types.Message) -> None:
+    record_message(message)
+    await cleanup(message.bot, message.chat.id)
     add_user(message.from_user)
     stats = get_user_stats(message.from_user.id) or {}
     xp = stats.get("xp", 0)
@@ -43,4 +52,5 @@ async def handle_profile(message: types.Message) -> None:
         f"Ранг: {rank}\n"
         f"Титул: {title}"
     )
-    await message.answer(text, reply_markup=start.get_menu_kb(message.from_user.id))
+    sent = await message.answer(text, reply_markup=start.get_menu_kb(message.from_user.id))
+    record_sent(sent)

@@ -11,7 +11,14 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 from app.utils.spam import check_message_allowed
-from app.utils import add_user, increment_submission, record_result
+from app.utils import (
+    add_user,
+    increment_submission,
+    record_result,
+    record_message,
+    record_sent,
+    cleanup,
+)
 from app.config import Config
 from app.constants import SUGGEST_BUTTON, BACK_BUTTON
 from . import start
@@ -41,18 +48,24 @@ def setup(config: Config):
 @router.message(Command("suggest"))
 @router.message(F.text == SUGGEST_BUTTON)
 async def cmd_suggest(message: types.Message, state: FSMContext):
+    record_message(message)
+    await cleanup(message.bot, message.chat.id)
     add_user(message.from_user)
     await state.set_state(Suggest.waiting_for_content)
-    await message.answer(
+    sent = await message.answer(
         "Отправьте контент (фото, видео, текст, гиф или музыку) для модерации.",
         reply_markup=cancel_kb,
     )
+    record_sent(sent)
 
 
 @router.message(Suggest.waiting_for_content, F.text == BACK_BUTTON)
 async def cancel_suggest(message: types.Message, state: FSMContext) -> None:
+    record_message(message)
+    await cleanup(message.bot, message.chat.id)
     await state.clear()
-    await message.answer("Главное меню", reply_markup=start.get_menu_kb(message.from_user.id))
+    sent = await message.answer("Главное меню", reply_markup=start.get_menu_kb(message.from_user.id))
+    record_sent(sent)
 
 
 @router.message(Suggest.waiting_for_content)
@@ -60,11 +73,14 @@ async def receive_content(message: types.Message, state: FSMContext):
     if message.chat.type != ChatType.PRIVATE:
         return
 
+    await cleanup(message.bot, message.chat.id)
+
     allowed, reason = check_message_allowed(
         message.chat.id, message.text or message.caption or ""
     )
     if not allowed:
-        await message.answer(reason)
+        sent_err = await message.answer(reason)
+        record_sent(sent_err)
         return
 
     kb = InlineKeyboardMarkup(
@@ -89,10 +105,11 @@ async def receive_content(message: types.Message, state: FSMContext):
         "decision": None,
     }
 
-    await message.answer(
+    sent2 = await message.answer(
         "Контент отправлен на модерацию.",
         reply_markup=start.get_menu_kb(message.from_user.id),
     )
+    record_sent(sent2)
     await state.clear()
 
 
@@ -110,11 +127,12 @@ async def moderation_decision(callback: types.CallbackQuery):
         inline_keyboard=[[InlineKeyboardButton(text="Пропустить", callback_data="skip")]]
     )
 
-    await callback.bot.send_message(
+    sent = await callback.bot.send_message(
         _config.mod_chat_id,
         "Оставьте комментарий для пользователя или нажмите 'Пропустить'.",
         reply_markup=skip_kb,
     )
+    record_sent(sent)
     await callback.answer("Решение сохранено. Ожидаю комментарий.")
 
 
@@ -138,7 +156,8 @@ async def moderator_comment(message: types.Message):
     if text:
         answer += f"\nКомментарий модератора: {text}"
 
-    await message.bot.send_message(entry["user_id"], answer)
+    sent = await message.bot.send_message(entry["user_id"], answer)
+    record_sent(sent)
     record_result(entry["user_id"], decision)
     waiting_comments.pop(message.from_user.id, None)
     await message.reply("Ответ отправлен пользователю.")
@@ -154,6 +173,7 @@ async def skip_comment(callback: types.CallbackQuery):
 
     decision = entry["decision"] == "approve"
     text = "Ваш контент принят!" if decision else "Ваш контент отклонен."
-    await callback.bot.send_message(entry["user_id"], text)
+    sent = await callback.bot.send_message(entry["user_id"], text)
+    record_sent(sent)
     record_result(entry["user_id"], decision)
     await callback.answer("Ответ отправлен пользователю.")
