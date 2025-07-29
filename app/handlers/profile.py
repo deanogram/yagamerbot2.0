@@ -26,6 +26,7 @@ async def handle_profile(message: types.Message) -> None:
     add_user(message.from_user)
     stats = get_user_stats(message.from_user.id) or {}
     xp = stats.get("xp", 0)
+    title = stats.get("title") or "-"
     warnings = get_warnings(message.from_user.id)
     rank = get_rank(xp)
 
@@ -33,6 +34,7 @@ async def handle_profile(message: types.Message) -> None:
         f"Username: @{message.from_user.username or 'нет'}\n"
         f"XP: {xp}\n"
         f"Предупреждений: {warnings}\n"
-        f"Ранг: {rank}"
+        f"Ранг: {rank}\n"
+        f"Титул: {title}"
     )
     await message.answer(text, reply_markup=start.get_menu_kb(message.from_user.id))

@@ -55,10 +55,16 @@ def init_moderation_db() -> None:
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS bans(
-                user_id INTEGER PRIMARY KEY
+                user_id INTEGER PRIMARY KEY,
+                until INTEGER DEFAULT 0
             )
             """
         )
+        # ensure column 'until' exists for older databases
+        try:
+            conn.execute("ALTER TABLE bans ADD COLUMN until INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS admins(
@@ -142,8 +148,8 @@ def clear_warnings(user_id: int) -> None:
 
 
 def mute_user(user_id: int, seconds: int) -> int:
-    """Mute user for given seconds. Returns timestamp when mute expires."""
-    until = int(time.time() + seconds)
+    """Mute user for given seconds. 0 means permanent mute."""
+    until = 0 if seconds <= 0 else int(time.time() + seconds)
     with sqlite3.connect(MOD_DB_PATH) as conn:
         conn.execute(
             """
@@ -168,6 +174,8 @@ def is_muted(user_id: int) -> bool:
         row = cur.fetchone()
         if not row:
             return False
+        if row[0] == 0:
+            return True
         if row[0] > int(time.time()):
             return True
         conn.execute("DELETE FROM mutes WHERE user_id=?", (user_id,))
@@ -175,13 +183,17 @@ def is_muted(user_id: int) -> bool:
         return False
 
 
-def ban_user(user_id: int) -> None:
+def ban_user(user_id: int, seconds: int = 0) -> int:
+    """Ban user for given seconds. 0 means permanent ban."""
+    until = 0 if seconds <= 0 else int(time.time() + seconds)
     with sqlite3.connect(MOD_DB_PATH) as conn:
         conn.execute(
-            "INSERT OR IGNORE INTO bans(user_id) VALUES(?)",
-            (user_id,),
+            "INSERT INTO bans(user_id, until) VALUES(?, ?)"
+            " ON CONFLICT(user_id) DO UPDATE SET until=excluded.until",
+            (user_id, until),
         )
         conn.commit()
+    return until
 
 
 def unban_user(user_id: int) -> None:
@@ -192,8 +204,17 @@ def unban_user(user_id: int) -> None:
 
 def is_banned(user_id: int) -> bool:
     with sqlite3.connect(MOD_DB_PATH) as conn:
-        cur = conn.execute("SELECT 1 FROM bans WHERE user_id=?", (user_id,))
-        return cur.fetchone() is not None
+        cur = conn.execute("SELECT until FROM bans WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        if not row:
+            return False
+        if row[0] == 0:
+            return True
+        if row[0] > int(time.time()):
+            return True
+        conn.execute("DELETE FROM bans WHERE user_id=?", (user_id,))
+        conn.commit()
+        return False
 
 
 def get_all_mutes() -> list[tuple[int, int]]:
@@ -202,10 +223,10 @@ def get_all_mutes() -> list[tuple[int, int]]:
         return cur.fetchall()
 
 
-def get_all_bans() -> list[int]:
+def get_all_bans() -> list[tuple[int, int]]:
     with sqlite3.connect(MOD_DB_PATH) as conn:
-        cur = conn.execute("SELECT user_id FROM bans")
-        return [row[0] for row in cur.fetchall()]
+        cur = conn.execute("SELECT user_id, until FROM bans")
+        return cur.fetchall()
 
 
 def add_admin(user_id: int) -> None:

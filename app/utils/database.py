@@ -14,6 +14,7 @@ def init_db() -> None:
                 user_id INTEGER PRIMARY KEY,
                 name TEXT,
                 username TEXT,
+                title TEXT DEFAULT '',
                 xp INTEGER DEFAULT 0,
                 sent_total INTEGER DEFAULT 0,
                 sent_approved INTEGER DEFAULT 0,
@@ -21,6 +22,11 @@ def init_db() -> None:
             )
             """
         )
+        # add missing column for older databases
+        try:
+            conn.execute("ALTER TABLE users ADD COLUMN title TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
         conn.commit()
 
 
@@ -88,6 +94,28 @@ def get_user_stats(user_id: int) -> dict | None:
         cur = conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
         row = cur.fetchone()
         return dict(row) if row else None
+
+
+def get_user_by_username(username: str) -> dict | None:
+    """Return user stats by username (case-insensitive)."""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.execute(
+            "SELECT * FROM users WHERE lower(username)=?",
+            (username.lower(),),
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def set_user_title(user_id: int, title: str) -> None:
+    """Assign custom title to the user."""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute(
+            "UPDATE users SET title=? WHERE user_id=?",
+            (title, user_id),
+        )
+        conn.commit()
 
 
 def get_all_user_ids() -> list[int]:
