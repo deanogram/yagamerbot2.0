@@ -31,6 +31,7 @@ from app.utils import (
     add_moderator,
     get_admins,
     get_moderators,
+    get_user_stats,
 )
 
 router = Router()
@@ -119,10 +120,8 @@ def _is_staff(user_id: int) -> bool:
 
 
 def _menu_kb(user_id: int) -> ReplyKeyboardMarkup:
-    """Return appropriate admin menu keyboard."""
-    if user_id == _config.admin_id:
-        return start.main_admin_kb
-    return start.admin_kb
+    """Return menu keyboard for admin or moderator."""
+    return start.get_menu_kb(user_id)
 
 
 @router.message(
@@ -366,7 +365,9 @@ async def cb_list_participants(callback: types.CallbackQuery) -> None:
                 [InlineKeyboardButton(text="Исключить", callback_data=f"kick_part:{tid}:{user_id}")]
             ]
         )
-        await callback.message.answer(f"{nickname} ({age}) — {user_id}", reply_markup=kb)
+        stats = get_user_stats(user_id)
+        username = f"@{stats.get('username')}" if stats and stats.get('username') else "нет"
+        await callback.message.answer(f"{nickname} ({age}) — {username}", reply_markup=kb)
 
 
 @router.callback_query(F.data.startswith("kick_part:"))

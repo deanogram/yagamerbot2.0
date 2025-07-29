@@ -52,7 +52,7 @@ async def cmd_suggest(message: types.Message, state: FSMContext):
 @router.message(Suggest.waiting_for_content, F.text == BACK_BUTTON)
 async def cancel_suggest(message: types.Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer("Главное меню", reply_markup=start.menu_kb)
+    await message.answer("Главное меню", reply_markup=start.get_menu_kb(message.from_user.id))
 
 
 @router.message(Suggest.waiting_for_content)
@@ -91,7 +91,7 @@ async def receive_content(message: types.Message, state: FSMContext):
 
     await message.answer(
         "Контент отправлен на модерацию.",
-        reply_markup=start.menu_kb,
+        reply_markup=start.get_menu_kb(message.from_user.id),
     )
     await state.clear()
 

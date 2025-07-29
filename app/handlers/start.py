@@ -21,6 +21,17 @@ router = Router()
 _config: Config
 
 
+def get_menu_kb(user_id: int) -> ReplyKeyboardMarkup:
+    """Return menu keyboard appropriate for the user."""
+    if user_id == _config.admin_id:
+        return main_admin_kb
+    if user_id in get_admins():
+        return admin_kb
+    if user_id in get_moderators():
+        return moderator_kb
+    return menu_kb
+
+
 def setup(config: Config) -> None:
     global _config
     _config = config
@@ -69,17 +80,14 @@ main_admin_kb = ReplyKeyboardMarkup(
 async def handle_start(message: types.Message):
     add_user(message.from_user)
     user_id = message.from_user.id
-    if user_id == _config.admin_id:
-        kb = main_admin_kb
+    kb = get_menu_kb(user_id)
+    if kb is main_admin_kb:
         text = "\U0001F4DD Главное меню администратора"
-    elif user_id in get_admins():
-        kb = admin_kb
+    elif kb is admin_kb:
         text = "\U0001F4DD Меню администратора"
-    elif user_id in get_moderators():
-        kb = moderator_kb
+    elif kb is moderator_kb:
         text = "\U0001F4DD Меню модератора"
     else:
-        kb = menu_kb
         text = (
             "\U0001F44B Здравствуйте! Нажмите \"Предложить контент\", чтобы отправить материал на модерацию, \"Профиль\" для просмотра статистики или \"Турниры\" для участия."
         )

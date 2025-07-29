@@ -58,7 +58,7 @@ async def tournaments_menu(message: types.Message) -> None:
 
 @router.message(F.text == BACK_BUTTON)
 async def tournaments_back(message: types.Message) -> None:
-    await message.answer("Главное меню", reply_markup=start.menu_kb)
+    await message.answer("Главное меню", reply_markup=start.get_menu_kb(message.from_user.id))
 
 
 @router.message(F.text == JOIN_BUTTON)
@@ -107,7 +107,7 @@ async def cb_join_tournament(callback: types.CallbackQuery, state: FSMContext) -
 @router.message(JoinState.waiting_age, F.text == BACK_BUTTON)
 async def cancel_join(message: types.Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer("Главное меню", reply_markup=start.menu_kb)
+    await message.answer("Главное меню", reply_markup=start.get_menu_kb(message.from_user.id))
 
 
 @router.message(JoinState.waiting_nick)
@@ -132,7 +132,7 @@ async def save_participant(message: types.Message, state: FSMContext) -> None:
         age,
     )
     if added:
-        await message.answer("Вы записаны на турнир!", reply_markup=start.menu_kb)
+        await message.answer("Вы записаны на турнир!", reply_markup=start.get_menu_kb(message.from_user.id))
     else:
-        await message.answer("Вы уже записаны на этот турнир.", reply_markup=start.menu_kb)
+        await message.answer("Вы уже записаны на этот турнир.", reply_markup=start.get_menu_kb(message.from_user.id))
     await state.clear()
