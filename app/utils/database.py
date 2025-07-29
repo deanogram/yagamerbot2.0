@@ -170,6 +170,7 @@ def init_tournament_info_db() -> None:
             CREATE TABLE IF NOT EXISTS tournaments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 game TEXT,
+                level TEXT,
                 type TEXT,
                 date TEXT,
                 prize TEXT,
@@ -197,6 +198,11 @@ def init_tournament_info_db() -> None:
             conn.execute("ALTER TABLE participants ADD COLUMN age INTEGER")
         except sqlite3.OperationalError:
             pass
+        # try to add missing columns for older versions
+        try:
+            conn.execute("ALTER TABLE tournaments ADD COLUMN level TEXT")
+        except sqlite3.OperationalError:
+            pass
         # try to add missing column "prize" for older versions
         try:
             conn.execute("ALTER TABLE tournaments ADD COLUMN prize TEXT")
@@ -210,11 +216,11 @@ def init_tournament_info_db() -> None:
         conn.commit()
 
 
-def add_tournament(game: str, type_: str, date: str, prize: str, preview: str | None) -> None:
+def add_tournament(game: str, level: str, type_: str, date: str, prize: str, preview: str | None) -> None:
     with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
         conn.execute(
-            "INSERT INTO tournaments(game, type, date, prize, preview) VALUES(?,?,?,?,?)",
-            (game, type_, date, prize, preview),
+            "INSERT INTO tournaments(game, level, type, date, prize, preview) VALUES(?,?,?,?,?,?)",
+            (game, level, type_, date, prize, preview),
         )
         conn.commit()
 
@@ -222,23 +228,23 @@ def add_tournament(game: str, type_: str, date: str, prize: str, preview: str | 
 def get_tournaments() -> list[tuple]:
     with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
         cur = conn.execute(
-            "SELECT id, game, type, date, prize, preview FROM tournaments ORDER BY id DESC"
+            "SELECT id, game, level, type, date, prize, preview FROM tournaments ORDER BY id DESC"
         )
         return cur.fetchall()
 
 
 def update_tournament(
-    tid: int, game: str, type_: str, date: str, prize: str, preview: str | None
+    tid: int, game: str, level: str, type_: str, date: str, prize: str, preview: str | None
 ) -> None:
     """Update tournament information by id."""
     with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
         conn.execute(
             """
             UPDATE tournaments
-            SET game=?, type=?, date=?, prize=?, preview=?
+            SET game=?, level=?, type=?, date=?, prize=?, preview=?
             WHERE id=?
             """,
-            (game, type_, date, prize, preview, tid),
+            (game, level, type_, date, prize, preview, tid),
         )
         conn.commit()
 
