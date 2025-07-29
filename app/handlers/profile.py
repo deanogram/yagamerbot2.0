@@ -35,4 +35,4 @@ async def handle_profile(message: types.Message) -> None:
         f"Предупреждений: {warnings}\n"
         f"Ранг: {rank}"
     )
-    await message.answer(text, reply_markup=start.menu_kb)
+    await message.answer(text, reply_markup=start.get_menu_kb(message.from_user.id))
