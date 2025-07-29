@@ -12,6 +12,7 @@ from app.constants import (
     MUTED_LIST_BUTTON,
     BANNED_LIST_BUTTON,
     ASSIGN_ROLE_BUTTON,
+    SEARCH_USER_BUTTON,
     PARTICIPANTS_LIST_BUTTON,
     BACK_BUTTON,
 )
@@ -102,6 +103,10 @@ class UserEdit(StatesGroup):
     waiting_ban = State()
 
 
+class UserSearch(StatesGroup):
+    waiting_query = State()
+
+
 def setup(config: Config) -> None:
     global _config
     _config = config
@@ -186,6 +191,39 @@ async def find_user(message: types.Message) -> None:
         stats = get_user_by_username(query)
     if not stats:
         await message.reply("User not found")
+        return
+    await _send_user_menu(message.bot, message.chat.id, stats["user_id"])
+
+
+@router.message(F.text == SEARCH_USER_BUTTON)
+async def ask_search_query(message: types.Message, state: FSMContext) -> None:
+    if not _is_admin(message.from_user.id):
+        return
+    await message.answer("Введите ID или username", reply_markup=cancel_kb)
+    await state.set_state(UserSearch.waiting_query)
+
+
+@router.message(UserSearch.waiting_query, F.text == BACK_BUTTON)
+async def cancel_search(message: types.Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("Главное меню", reply_markup=_menu_kb(message.from_user.id))
+
+
+@router.message(UserSearch.waiting_query)
+async def process_search(message: types.Message, state: FSMContext) -> None:
+    if not _is_admin(message.from_user.id):
+        await state.clear()
+        return
+    query = message.text.strip()
+    if query.startswith("@"):  # username search
+        stats = get_user_by_username(query[1:])
+    elif query.isdigit():
+        stats = get_user_stats(int(query))
+    else:
+        stats = get_user_by_username(query)
+    await state.clear()
+    if not stats:
+        await message.answer("User not found", reply_markup=_menu_kb(message.from_user.id))
         return
     await _send_user_menu(message.bot, message.chat.id, stats["user_id"])
 
