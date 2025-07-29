@@ -9,15 +9,21 @@ router = Router()
 
 
 def get_rank(xp: int) -> str:
+    if xp <= 100:
+        return "Нубик"
     if xp <= 500:
-        return "Новичок"
+        return "Новобранец"
     if xp <= 1000:
-        return "Джун"
-    if xp <= 2000:
         return "Бывалый"
-    if xp <= 5000:
+    if xp <= 1500:
         return "Pro"
-    return "Легенда"
+    if xp <= 2000:
+        return "Мастер"
+    if xp <= 4000:
+        return "Грандмастер"
+    if xp <= 10000:
+        return "Легенда!"
+    return "Титан"
 
 
 @router.message(Command("profile"))
