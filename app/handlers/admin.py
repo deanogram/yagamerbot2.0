@@ -15,6 +15,9 @@ from app.constants import (
     SEARCH_USER_BUTTON,
     PARTICIPANTS_LIST_BUTTON,
     BACK_BUTTON,
+    LEVEL_BEGINNER_BUTTON,
+    LEVEL_AMATEUR_BUTTON,
+    LEVEL_PRO_BUTTON,
 )
 from . import start
 from app.utils import (
@@ -61,6 +64,16 @@ game_kb = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+level_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text=LEVEL_BEGINNER_BUTTON)],
+        [KeyboardButton(text=LEVEL_AMATEUR_BUTTON)],
+        [KeyboardButton(text=LEVEL_PRO_BUTTON)],
+        [KeyboardButton(text=BACK_BUTTON)],
+    ],
+    resize_keyboard=True,
+)
+
 type_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="1 vs 1")],
@@ -82,6 +95,7 @@ preview_kb = ReplyKeyboardMarkup(
 
 class TournamentCreate(StatesGroup):
     waiting_game = State()
+    waiting_level = State()
     waiting_type = State()
     waiting_date = State()
     waiting_prize = State()
@@ -90,6 +104,7 @@ class TournamentCreate(StatesGroup):
 
 class TournamentEdit(StatesGroup):
     waiting_game = State()
+    waiting_level = State()
     waiting_type = State()
     waiting_date = State()
     waiting_prize = State()
@@ -232,6 +247,7 @@ async def process_search(message: types.Message, state: FSMContext) -> None:
     TournamentCreate.waiting_game,
     F.text == BACK_BUTTON,
 )
+@router.message(TournamentCreate.waiting_level, F.text == BACK_BUTTON)
 @router.message(TournamentCreate.waiting_type, F.text == BACK_BUTTON)
 @router.message(TournamentCreate.waiting_date, F.text == BACK_BUTTON)
 @router.message(TournamentCreate.waiting_prize, F.text == BACK_BUTTON)
@@ -242,6 +258,7 @@ async def cancel_create(message: types.Message, state: FSMContext) -> None:
 
 
 @router.message(TournamentEdit.waiting_game, F.text == BACK_BUTTON)
+@router.message(TournamentEdit.waiting_level, F.text == BACK_BUTTON)
 @router.message(TournamentEdit.waiting_type, F.text == BACK_BUTTON)
 @router.message(TournamentEdit.waiting_date, F.text == BACK_BUTTON)
 @router.message(TournamentEdit.waiting_prize, F.text == BACK_BUTTON)
@@ -270,8 +287,15 @@ async def create_tournament_start(message: types.Message, state: FSMContext) -> 
 
 
 @router.message(TournamentCreate.waiting_game)
-async def choose_type(message: types.Message, state: FSMContext) -> None:
+async def choose_level(message: types.Message, state: FSMContext) -> None:
     await state.update_data(game=message.text)
+    await state.set_state(TournamentCreate.waiting_level)
+    await message.answer("\U0001F3C5 Выберите уровень", reply_markup=level_kb)
+
+
+@router.message(TournamentCreate.waiting_level)
+async def choose_type(message: types.Message, state: FSMContext) -> None:
+    await state.update_data(level=message.text)
     await state.set_state(TournamentCreate.waiting_type)
     await message.answer("\U0001F4DD Выберите формат", reply_markup=type_kb)
 
@@ -308,6 +332,7 @@ async def save_tournament(message: types.Message, state: FSMContext) -> None:
     data = await state.get_data()
     add_tournament(
         data.get("game"),
+        data.get("level"),
         data.get("type"),
         data.get("date"),
         data.get("prize"),
@@ -329,7 +354,7 @@ async def manage_tournaments(message: types.Message) -> None:
         await message.answer("Турниры не запланированы", reply_markup=cancel_kb)
         return
     await message.answer("\U0001F4C5 Список турниров:", reply_markup=cancel_kb)
-    for tid, game, type_, date, prize, preview in tournaments:
+    for tid, game, level, type_, date, prize, preview in tournaments:
         kb = InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="Редактировать", callback_data=f"edit_tour:{tid}")],
@@ -337,7 +362,7 @@ async def manage_tournaments(message: types.Message) -> None:
                 [InlineKeyboardButton(text=PARTICIPANTS_LIST_BUTTON, callback_data=f"list_part:{tid}")],
             ]
         )
-        text = f"{tid}. {game} {type_} — {date}, призовой фонд: {prize}"
+        text = f"{tid}. {game} ({level}) {type_} — {date}, призовой фонд: {prize}"
         if preview:
             await message.bot.send_photo(message.chat.id, preview, caption=text, reply_markup=kb)
         else:
@@ -389,8 +414,15 @@ async def cb_edit_tournament(callback: types.CallbackQuery, state: FSMContext) -
 
 
 @router.message(TournamentEdit.waiting_game)
-async def edit_choose_type(message: types.Message, state: FSMContext) -> None:
+async def edit_choose_level(message: types.Message, state: FSMContext) -> None:
     await state.update_data(game=message.text)
+    await state.set_state(TournamentEdit.waiting_level)
+    await message.answer("\U0001F3C5 Выберите уровень", reply_markup=level_kb)
+
+
+@router.message(TournamentEdit.waiting_level)
+async def edit_choose_type(message: types.Message, state: FSMContext) -> None:
+    await state.update_data(level=message.text)
     await state.set_state(TournamentEdit.waiting_type)
     await message.answer("\U0001F4DD Выберите формат", reply_markup=type_kb)
 
@@ -428,6 +460,7 @@ async def save_edit(message: types.Message, state: FSMContext) -> None:
     update_tournament(
         data.get("edit_id"),
         data.get("game"),
+        data.get("level"),
         data.get("type"),
         data.get("date"),
         data.get("prize"),

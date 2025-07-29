@@ -68,8 +68,8 @@ async def show_tournaments(message: types.Message) -> None:
         await message.answer("\u2753 Турниры не запланированы")
         return
     await message.answer("\U0001F4C5 Актуальные турниры:")
-    for tid, game, type_, date, prize, preview in tournaments:
-        text = f"{tid}. {game} {type_} — {date}, призовой фонд: {prize}"
+    for tid, game, level, type_, date, prize, preview in tournaments:
+        text = f"{tid}. {game} ({level}) {type_} — {date}, призовой фонд: {prize}"
         kb = InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text=SIGNUP_BUTTON, callback_data=f"join_tour:{tid}")]
