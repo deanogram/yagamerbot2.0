@@ -1,8 +1,19 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
 
-from app.utils import get_tournament_ratings, get_tournaments, add_participant
+from app.utils import (
+    get_tournament_ratings,
+    get_tournaments,
+    add_participant,
+)
 from app.constants import (
     TOURNAMENTS_BUTTON,
     JOIN_BUTTON,
@@ -13,6 +24,17 @@ from app.constants import (
 from . import start
 
 router = Router()
+
+
+cancel_kb = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton(text=BACK_BUTTON)]],
+    resize_keyboard=True,
+)
+
+
+class JoinState(StatesGroup):
+    waiting_nick = State()
+    waiting_age = State()
 
 
 tournament_kb = ReplyKeyboardMarkup(
@@ -73,10 +95,44 @@ async def show_rating(message: types.Message) -> None:
 
 
 @router.callback_query(F.data.startswith("join_tour:"))
-async def cb_join_tournament(callback: types.CallbackQuery) -> None:
+async def cb_join_tournament(callback: types.CallbackQuery, state: FSMContext) -> None:
     tid = int(callback.data.split(":", 1)[1])
-    added = add_participant(tid, callback.from_user.id)
+    await state.update_data(tid=tid)
+    await state.set_state(JoinState.waiting_nick)
+    await callback.message.answer("Введите ваш никнейм", reply_markup=cancel_kb)
+    await callback.answer()
+
+
+@router.message(JoinState.waiting_nick, F.text == BACK_BUTTON)
+@router.message(JoinState.waiting_age, F.text == BACK_BUTTON)
+async def cancel_join(message: types.Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("Главное меню", reply_markup=start.menu_kb)
+
+
+@router.message(JoinState.waiting_nick)
+async def ask_age(message: types.Message, state: FSMContext) -> None:
+    await state.update_data(nickname=message.text)
+    await state.set_state(JoinState.waiting_age)
+    await message.answer("Введите ваш возраст", reply_markup=cancel_kb)
+
+
+@router.message(JoinState.waiting_age)
+async def save_participant(message: types.Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    try:
+        age = int(message.text)
+    except ValueError:
+        await message.answer("Возраст должен быть числом. Попробуйте снова.")
+        return
+    added = add_participant(
+        data.get("tid"),
+        message.from_user.id,
+        data.get("nickname"),
+        age,
+    )
     if added:
-        await callback.answer("Вы записаны на турнир!", show_alert=True)
+        await message.answer("Вы записаны на турнир!", reply_markup=start.menu_kb)
     else:
-        await callback.answer("Вы уже записаны на этот турнир.", show_alert=True)
+        await message.answer("Вы уже записаны на этот турнир.", reply_markup=start.menu_kb)
+    await state.clear()

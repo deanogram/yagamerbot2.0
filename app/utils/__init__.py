@@ -15,6 +15,7 @@ from .database import (
     delete_tournament,
     add_participant,
     get_participants,
+    remove_participant,
 )
 from .moderation import (
     init_moderation_db,
