@@ -4,6 +4,8 @@ from .database import (
     increment_submission,
     record_result,
     get_user_stats,
+    get_user_by_username,
+    set_user_title,
     add_xp,
     get_all_user_ids,
     init_tournament_db,

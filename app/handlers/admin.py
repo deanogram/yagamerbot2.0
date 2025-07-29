@@ -1,4 +1,5 @@
-from aiogram import Router, types, F
+from aiogram import Router, types, F, Bot
+import time
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.state import State, StatesGroup
@@ -27,6 +28,13 @@ from app.utils import (
     get_all_bans,
     unmute_user,
     unban_user,
+    get_user_by_username,
+    set_user_title,
+    add_xp,
+    mute_user,
+    ban_user,
+    is_muted,
+    is_banned,
     add_admin,
     add_moderator,
     get_admins,
@@ -87,6 +95,13 @@ class TournamentEdit(StatesGroup):
     waiting_preview = State()
 
 
+class UserEdit(StatesGroup):
+    waiting_title = State()
+    waiting_xp = State()
+    waiting_mute = State()
+    waiting_ban = State()
+
+
 def setup(config: Config) -> None:
     global _config
     _config = config
@@ -122,6 +137,57 @@ def _is_staff(user_id: int) -> bool:
 def _menu_kb(user_id: int) -> ReplyKeyboardMarkup:
     """Return menu keyboard for admin or moderator."""
     return start.get_menu_kb(user_id)
+
+
+def _user_edit_kb(user_id: int) -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text="Изменить титул", callback_data=f"set_title:{user_id}")],
+        [
+            InlineKeyboardButton(text="Добавить XP", callback_data=f"addxp:{user_id}"),
+            InlineKeyboardButton(text="Отнять XP", callback_data=f"subxp:{user_id}"),
+        ],
+    ]
+    if is_muted(user_id):
+        buttons.append([InlineKeyboardButton(text="Размутить", callback_data=f"unmute:{user_id}")])
+    else:
+        buttons.append([InlineKeyboardButton(text="Мут", callback_data=f"muteuser:{user_id}")])
+    if is_banned(user_id):
+        buttons.append([InlineKeyboardButton(text="Разбанить", callback_data=f"unban:{user_id}")])
+    else:
+        buttons.append([InlineKeyboardButton(text="Бан", callback_data=f"banuser:{user_id}")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+async def _send_user_menu(bot: Bot, chat_id: int, user_id: int) -> None:
+    stats = get_user_stats(user_id) or {}
+    text = (
+        f"ID: {user_id}\n"
+        f"Username: @{stats.get('username') or 'нет'}\n"
+        f"XP: {stats.get('xp', 0)}\n"
+        f"Титул: {stats.get('title') or '-'}"
+    )
+    await bot.send_message(chat_id, text, reply_markup=_user_edit_kb(user_id))
+
+
+@router.message(Command("user"))
+async def find_user(message: types.Message) -> None:
+    if not _is_admin(message.from_user.id):
+        return
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await message.reply("Usage: /user <id|@username>")
+        return
+    query = parts[1].strip()
+    if query.startswith("@"):  # username search
+        stats = get_user_by_username(query[1:])
+    elif query.isdigit():
+        stats = get_user_stats(int(query))
+    else:
+        stats = get_user_by_username(query)
+    if not stats:
+        await message.reply("User not found")
+        return
+    await _send_user_menu(message.bot, message.chat.id, stats["user_id"])
 
 
 @router.message(
@@ -265,7 +331,7 @@ async def list_bans(message: types.Message) -> None:
         await message.answer("Список банов пуст", reply_markup=cancel_kb)
         return
     await message.answer("\u26D4\ufe0f Забаненные пользователи:", reply_markup=cancel_kb)
-    for user_id in entries:
+    for user_id, _ in entries:
         kb = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text="Разбанить", callback_data=f"unban:{user_id}")]]
         )
@@ -395,6 +461,139 @@ async def cb_unban(callback: types.CallbackQuery) -> None:
     unban_user(user_id)
     await callback.answer("Пользователь разбанен")
     await callback.message.edit_text("Разбанен")
+
+
+@router.callback_query(F.data.startswith("edit_user:"))
+async def cb_edit_user(callback: types.CallbackQuery) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    uid = int(callback.data.split(":", 1)[1])
+    await callback.answer()
+    await _send_user_menu(callback.bot, callback.message.chat.id, uid)
+
+
+@router.callback_query(F.data.startswith("set_title:"))
+async def cb_set_title(callback: types.CallbackQuery, state: FSMContext) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    uid = int(callback.data.split(":", 1)[1])
+    await state.update_data(edit_uid=uid)
+    await state.set_state(UserEdit.waiting_title)
+    await callback.message.answer("Введите новый титул (или '-' чтобы удалить)")
+    await callback.answer()
+
+
+@router.message(UserEdit.waiting_title)
+async def process_title(message: types.Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    uid = data.get("edit_uid")
+    title = message.text.strip()
+    if title == "-":
+        title = ""
+    set_user_title(uid, title)
+    await state.clear()
+    await message.answer("Титул обновлен")
+    await _send_user_menu(message.bot, message.chat.id, uid)
+
+
+@router.callback_query(F.data.startswith("addxp:"))
+async def cb_add_xp(callback: types.CallbackQuery, state: FSMContext) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    uid = int(callback.data.split(":", 1)[1])
+    await state.update_data(edit_uid=uid, xp_sign=1)
+    await state.set_state(UserEdit.waiting_xp)
+    await callback.message.answer("Введите количество XP для добавления")
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("subxp:"))
+async def cb_sub_xp(callback: types.CallbackQuery, state: FSMContext) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    uid = int(callback.data.split(":", 1)[1])
+    await state.update_data(edit_uid=uid, xp_sign=-1)
+    await state.set_state(UserEdit.waiting_xp)
+    await callback.message.answer("Введите количество XP для вычета")
+    await callback.answer()
+
+
+@router.message(UserEdit.waiting_xp)
+async def process_xp(message: types.Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    uid = data.get("edit_uid")
+    sign = data.get("xp_sign", 1)
+    try:
+        amount = int(message.text)
+    except ValueError:
+        await message.answer("Нужно число")
+        return
+    add_xp(uid, amount * sign)
+    await state.clear()
+    await message.answer("XP изменено")
+    await _send_user_menu(message.bot, message.chat.id, uid)
+
+
+@router.callback_query(F.data.startswith("muteuser:"))
+async def cb_mute_user(callback: types.CallbackQuery, state: FSMContext) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    uid = int(callback.data.split(":", 1)[1])
+    await state.update_data(edit_uid=uid)
+    await state.set_state(UserEdit.waiting_mute)
+    await callback.message.answer("На сколько часов выдать мут? (0 - навсегда)")
+    await callback.answer()
+
+
+@router.message(UserEdit.waiting_mute)
+async def process_mute(message: types.Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    uid = data.get("edit_uid")
+    try:
+        hours = int(message.text)
+    except ValueError:
+        await message.answer("Нужно число")
+        return
+    mute_user(uid, hours * 3600 if hours > 0 else 0)
+    await state.clear()
+    await message.answer("Мут установлен")
+    await _send_user_menu(message.bot, message.chat.id, uid)
+
+
+@router.callback_query(F.data.startswith("banuser:"))
+async def cb_ban_user(callback: types.CallbackQuery, state: FSMContext) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    uid = int(callback.data.split(":", 1)[1])
+    await state.update_data(edit_uid=uid)
+    await state.set_state(UserEdit.waiting_ban)
+    await callback.message.answer("На сколько часов бан? (0 - навсегда)")
+    await callback.answer()
+
+
+@router.message(UserEdit.waiting_ban)
+async def process_ban(message: types.Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    uid = data.get("edit_uid")
+    try:
+        hours = int(message.text)
+    except ValueError:
+        await message.answer("Нужно число")
+        return
+    ban_user(uid, hours * 3600 if hours > 0 else 0)
+    try:
+        await message.bot.ban_chat_member(_config.forum_chat_id, uid, until_date=int(time.time()) + hours * 3600 if hours > 0 else None)
+    except Exception:
+        pass
+    await state.clear()
+    await message.answer("Бан установлен")
+    await _send_user_menu(message.bot, message.chat.id, uid)
 
 
 @router.message(Command("promote"))
