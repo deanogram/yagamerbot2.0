@@ -11,6 +11,7 @@ from app.constants import (
     MUTED_LIST_BUTTON,
     BANNED_LIST_BUTTON,
     ASSIGN_ROLE_BUTTON,
+    PARTICIPANTS_LIST_BUTTON,
     BACK_BUTTON,
 )
 from . import start
@@ -20,6 +21,8 @@ from app.utils import (
     update_tournament,
     delete_tournament,
     get_tournaments,
+    get_participants,
+    remove_participant,
     get_all_mutes,
     get_all_bans,
     unmute_user,
@@ -228,6 +231,7 @@ async def manage_tournaments(message: types.Message) -> None:
             inline_keyboard=[
                 [InlineKeyboardButton(text="Редактировать", callback_data=f"edit_tour:{tid}")],
                 [InlineKeyboardButton(text="Удалить", callback_data=f"del_tour:{tid}")],
+                [InlineKeyboardButton(text=PARTICIPANTS_LIST_BUTTON, callback_data=f"list_part:{tid}")],
             ]
         )
         text = f"{tid}. {game} {type_} — {date}, призовой фонд: {prize}"
@@ -342,6 +346,38 @@ async def cb_delete_tournament(callback: types.CallbackQuery) -> None:
     delete_tournament(tid)
     await callback.answer("Турнир удален")
     await callback.message.edit_text("Удален")
+
+
+@router.callback_query(F.data.startswith("list_part:"))
+async def cb_list_participants(callback: types.CallbackQuery) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    tid = int(callback.data.split(":", 1)[1])
+    entries = get_participants(tid)
+    if not entries:
+        await callback.answer("Список пуст", show_alert=True)
+        return
+    await callback.answer()
+    await callback.message.answer("\U0001F4CB Участники:")
+    for user_id, nickname, age in entries:
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Исключить", callback_data=f"kick_part:{tid}:{user_id}")]
+            ]
+        )
+        await callback.message.answer(f"{nickname} ({age}) — {user_id}", reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("kick_part:"))
+async def cb_kick_participant(callback: types.CallbackQuery) -> None:
+    if not _is_admin(callback.from_user.id):
+        await callback.answer()
+        return
+    _, tid, uid = callback.data.split(":")
+    remove_participant(int(tid), int(uid))
+    await callback.answer("Исключен")
+    await callback.message.edit_text("Исключен")
 
 
 @router.callback_query(F.data.startswith("unmute:"))
