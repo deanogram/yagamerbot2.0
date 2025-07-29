@@ -149,6 +149,15 @@ def init_tournament_info_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS participants (
+                tournament_id INTEGER,
+                user_id INTEGER,
+                PRIMARY KEY (tournament_id, user_id)
+            )
+            """
+        )
         # try to add missing column "prize" for older versions
         try:
             conn.execute("ALTER TABLE tournaments ADD COLUMN prize TEXT")
@@ -200,3 +209,27 @@ def delete_tournament(tid: int) -> None:
     with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
         conn.execute("DELETE FROM tournaments WHERE id=?", (tid,))
         conn.commit()
+
+
+def add_participant(tid: int, user_id: int) -> bool:
+    """Add user as participant to the tournament. Return True if added."""
+    with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
+        try:
+            conn.execute(
+                "INSERT INTO participants(tournament_id, user_id) VALUES(?, ?)",
+                (tid, user_id),
+            )
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+
+def get_participants(tid: int) -> list[int]:
+    """Return list of user ids participating in tournament."""
+    with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
+        cur = conn.execute(
+            "SELECT user_id FROM participants WHERE tournament_id=?",
+            (tid,),
+        )
+        return [row[0] for row in cur.fetchall()]
