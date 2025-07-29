@@ -41,3 +41,5 @@ from .moderation import (
     remove_moderator,
     get_moderators,
 )
+
+from .history import record_message, record_sent, cleanup

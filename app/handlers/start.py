@@ -14,7 +14,14 @@ from app.constants import (
     BANNED_LIST_BUTTON,
     ASSIGN_ROLE_BUTTON,
 )
-from app.utils import add_user, get_admins, get_moderators
+from app.utils import (
+    add_user,
+    get_admins,
+    get_moderators,
+    record_message,
+    record_sent,
+    cleanup,
+)
 from app.config import Config
 
 router = Router()
@@ -81,6 +88,8 @@ main_admin_kb = ReplyKeyboardMarkup(
 
 @router.message(CommandStart())
 async def handle_start(message: types.Message):
+    record_message(message)
+    await cleanup(message.bot, message.chat.id)
     add_user(message.from_user)
     user_id = message.from_user.id
     kb = get_menu_kb(user_id)
@@ -95,4 +104,5 @@ async def handle_start(message: types.Message):
             "\U0001F44B Здравствуйте! Нажмите \"Предложить контент\", чтобы отправить материал на модерацию, \"Профиль\" для просмотра статистики или \"Турниры\" для участия."
         )
 
-    await message.answer(text, reply_markup=kb)
+    sent = await message.answer(text, reply_markup=kb)
+    record_sent(sent)
