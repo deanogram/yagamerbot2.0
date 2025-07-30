@@ -233,6 +233,16 @@ def get_tournaments() -> list[tuple]:
         return cur.fetchall()
 
 
+def get_tournament(tid: int) -> tuple | None:
+    """Return tournament information by id."""
+    with sqlite3.connect(TOURNAMENT_INFO_DB_PATH) as conn:
+        cur = conn.execute(
+            "SELECT id, game, level, type, date, prize, preview FROM tournaments WHERE id=?",
+            (tid,),
+        )
+        return cur.fetchone()
+
+
 def update_tournament(
     tid: int, game: str, level: str, type_: str, date: str, prize: str, preview: str | None
 ) -> None:

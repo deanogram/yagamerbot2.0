@@ -13,6 +13,7 @@ from .database import (
     init_tournament_info_db,
     add_tournament,
     get_tournaments,
+    get_tournament,
     update_tournament,
     delete_tournament,
     add_participant,
