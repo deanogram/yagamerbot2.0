@@ -12,6 +12,7 @@ from aiogram.fsm.context import FSMContext
 from app.utils import (
     get_tournament_ratings,
     get_tournaments,
+    get_tournament,
     add_participant,
     record_message,
     record_sent,
@@ -162,7 +163,13 @@ async def save_participant(message: types.Message, state: FSMContext) -> None:
         age,
     )
     if added:
-        sent = await message.answer("Вы записаны на турнир!", reply_markup=start.get_menu_kb(message.from_user.id))
+        tour = get_tournament(data.get("tid"))
+        if tour:
+            _, game, level, type_, date, *_ = tour
+            text = f"Вы записаны на турнир {game} ({level}) {type_} — {date}!"
+        else:
+            text = "Вы записаны на турнир!"
+        sent = await message.answer(text, reply_markup=start.get_menu_kb(message.from_user.id))
         record_sent(sent)
     else:
         sent = await message.answer("Вы уже записаны на этот турнир.", reply_markup=start.get_menu_kb(message.from_user.id))
