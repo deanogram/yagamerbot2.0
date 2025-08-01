@@ -5,6 +5,7 @@ from app.utils import (
     add_user,
     get_user_stats,
     get_warnings,
+    get_user_achievements,
     record_message,
     record_sent,
     cleanup,
@@ -43,6 +44,7 @@ async def handle_profile(message: types.Message) -> None:
     xp = stats.get("xp", 0)
     title = stats.get("title") or "-"
     warnings = get_warnings(message.from_user.id)
+    achievements = get_user_achievements(message.from_user.id)
     rank = get_rank(xp)
 
     text = (
@@ -52,5 +54,7 @@ async def handle_profile(message: types.Message) -> None:
         f"Ранг: {rank}\n"
         f"Титул: {title}"
     )
+    if achievements:
+        text += "\n\nДостижения:\n" + "\n".join(achievements)
     sent = await message.answer(text, reply_markup=start.get_menu_kb(message.from_user.id))
     record_sent(sent)

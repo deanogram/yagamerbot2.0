@@ -44,3 +44,10 @@ from .moderation import (
 )
 
 from .history import record_message, record_sent, cleanup
+from .achievements import (
+    init_achievements_db,
+    record_meme,
+    record_video,
+    record_tournament,
+    get_user_achievements,
+)

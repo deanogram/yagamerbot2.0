@@ -14,6 +14,7 @@ from app.utils import (
     get_tournaments,
     get_tournament,
     add_participant,
+    record_tournament,
     record_message,
     record_sent,
     cleanup,
@@ -171,6 +172,10 @@ async def save_participant(message: types.Message, state: FSMContext) -> None:
             text = "Вы записаны на турнир!"
         sent = await message.answer(text, reply_markup=start.get_menu_kb(message.from_user.id))
         record_sent(sent)
+        new_ach = record_tournament(message.from_user.id)
+        for ach in new_ach:
+            sent_a = await message.answer(f"Получено достижение: {ach}!")
+            record_sent(sent_a)
     else:
         sent = await message.answer("Вы уже записаны на этот турнир.", reply_markup=start.get_menu_kb(message.from_user.id))
         record_sent(sent)
