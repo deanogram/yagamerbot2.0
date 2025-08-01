@@ -10,6 +10,7 @@ from app.utils import (
     init_tournament_db,
     init_tournament_info_db,
     init_moderation_db,
+    init_achievements_db,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -21,6 +22,7 @@ async def main() -> None:
     init_tournament_db()
     init_tournament_info_db()
     init_moderation_db()
+    init_achievements_db()
     bot = Bot(config.bot_token)
     dp = Dispatcher()
 

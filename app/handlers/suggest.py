@@ -15,6 +15,8 @@ from app.utils import (
     add_user,
     increment_submission,
     record_result,
+    record_meme,
+    record_video,
     record_message,
     record_sent,
     cleanup,
@@ -92,6 +94,11 @@ async def receive_content(message: types.Message, state: FSMContext):
         ]
     )
 
+    if message.video or message.video_note:
+        ctype = "video"
+    else:
+        ctype = "meme"
+
     mod_message = await message.send_copy(
         _config.mod_chat_id,
         reply_markup=kb,
@@ -103,6 +110,7 @@ async def receive_content(message: types.Message, state: FSMContext):
     suggestions[mod_message.message_id] = {
         "user_id": message.chat.id,
         "decision": None,
+        "type": ctype,
     }
 
     sent2 = await message.answer(
@@ -159,6 +167,14 @@ async def moderator_comment(message: types.Message):
     sent = await message.bot.send_message(entry["user_id"], answer)
     record_sent(sent)
     record_result(entry["user_id"], decision)
+    if decision:
+        if entry.get("type") == "video":
+            new_ach = record_video(entry["user_id"])
+        else:
+            new_ach = record_meme(entry["user_id"])
+        for ach in new_ach:
+            sent_a = await message.bot.send_message(entry["user_id"], f"Получено достижение: {ach}!")
+            record_sent(sent_a)
     waiting_comments.pop(message.from_user.id, None)
     await message.reply("Ответ отправлен пользователю.")
 
@@ -176,4 +192,12 @@ async def skip_comment(callback: types.CallbackQuery):
     sent = await callback.bot.send_message(entry["user_id"], text)
     record_sent(sent)
     record_result(entry["user_id"], decision)
+    if decision:
+        if entry.get("type") == "video":
+            new_ach = record_video(entry["user_id"])
+        else:
+            new_ach = record_meme(entry["user_id"])
+        for ach in new_ach:
+            sent_a = await callback.bot.send_message(entry["user_id"], f"Получено достижение: {ach}!")
+            record_sent(sent_a)
     await callback.answer("Ответ отправлен пользователю.")
