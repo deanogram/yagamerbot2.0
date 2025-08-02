@@ -61,6 +61,9 @@ async def moderate_group_message(message: types.Message) -> None:
         if reason in {
             "Сообщение содержит запрещенные слова.",
             "Сообщение содержит запрещенные ссылки.",
+            "Флуд: слишком много сообщений подряд.",
+            "Повторяющийся контент.",
+            "Слишком много капса и эмодзи.",
         }:
             count = add_warning(message.from_user.id)
             if count >= 4:
@@ -82,6 +85,12 @@ async def moderate_group_message(message: types.Message) -> None:
             else:
                 if reason.startswith("Сообщение содержит запрещенные слова"):
                     warn_text = "Ай ай ай, приятель, не стоит выражаться"
+                elif reason == "Флуд: слишком много сообщений подряд.":
+                    warn_text = "Не флуди в чате, пожалуйста"
+                elif reason == "Повторяющийся контент.":
+                    warn_text = "Не отправляй одно и то же сообщение снова"
+                elif reason == "Слишком много капса и эмодзи.":
+                    warn_text = "Не злоупотребляй капсом и эмодзи"
                 else:
                     warn_text = "Тут нельзя ничего рекламировать, друг"
                 try:
