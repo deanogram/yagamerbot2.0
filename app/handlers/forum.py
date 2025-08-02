@@ -58,6 +58,12 @@ async def moderate_group_message(message: types.Message) -> None:
     )
     if not allowed:
         await message.delete()
+        user = message.from_user
+        if user.username:
+            mention = f"@{user.username}"
+        else:
+            mention = f'<a href="tg://user?id={user.id}">{user.full_name}</a>'
+
         if reason in {
             "Сообщение содержит запрещенные слова.",
             "Сообщение содержит запрещенные ссылки.",
@@ -77,6 +83,11 @@ async def moderate_group_message(message: types.Message) -> None:
                         until_date=int(time.time()) + 24 * 3600,
                     )
                     await message.bot.send_message(
+                        message.chat.id,
+                        f"{mention} получил мут на 24 часа за нарушения.",
+                        parse_mode="HTML",
+                    )
+                    await message.bot.send_message(
                         message.from_user.id,
                         "Вы получили мут на 24 часа за нарушения.",
                     )
@@ -94,15 +105,29 @@ async def moderate_group_message(message: types.Message) -> None:
                 else:
                     warn_text = "Тут нельзя ничего рекламировать, друг"
                 try:
+                    text = f"{warn_text} ({count}/3 варнов)"
                     await message.bot.send_message(
-                        message.from_user.id,
-                        f"{warn_text} ({count}/3 варнов)",
+                        message.chat.id,
+                        f"{mention} {text}",
+                        parse_mode="HTML",
                     )
+                    try:
+                        await message.bot.send_message(message.from_user.id, text)
+                    except Exception:
+                        pass
                 except Exception:
                     pass
         else:
             try:
-                await message.bot.send_message(message.from_user.id, reason)
+                await message.bot.send_message(
+                    message.chat.id,
+                    f"{mention} {reason}",
+                    parse_mode="HTML",
+                )
+                try:
+                    await message.bot.send_message(message.from_user.id, reason)
+                except Exception:
+                    pass
             except Exception:
                 pass
         return
