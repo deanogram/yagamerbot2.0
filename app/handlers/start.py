@@ -1,6 +1,7 @@
-from aiogram import types, Router
+from aiogram import types, Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.enums import ChatType
 
 from app.constants import (
     SUGGEST_BUTTON,
@@ -86,7 +87,7 @@ main_admin_kb = ReplyKeyboardMarkup(
 )
 
 
-@router.message(CommandStart())
+@router.message(CommandStart(), F.chat.type == ChatType.PRIVATE)
 async def handle_start(message: types.Message):
     record_message(message)
     await cleanup(message.bot, message.chat.id)

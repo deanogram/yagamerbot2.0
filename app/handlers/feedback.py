@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
+from aiogram.enums import ChatType
 
 from app.constants import (
     FEEDBACK_BUTTON,
@@ -50,8 +51,8 @@ class FeedbackState(StatesGroup):
 entries: dict[int, int] = {}
 
 
-@router.message(Command("feedback"))
-@router.message(F.text == FEEDBACK_BUTTON)
+@router.message(Command("feedback"), F.chat.type == ChatType.PRIVATE)
+@router.message(F.text == FEEDBACK_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def feedback_menu(message: types.Message) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -62,7 +63,7 @@ async def feedback_menu(message: types.Message) -> None:
     record_sent(sent)
 
 
-@router.message(F.text == BACK_BUTTON)
+@router.message(F.text == BACK_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def feedback_back(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -71,7 +72,7 @@ async def feedback_back(message: types.Message, state: FSMContext) -> None:
     record_sent(sent)
 
 
-@router.message(F.text == PROPOSAL_BUTTON)
+@router.message(F.text == PROPOSAL_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def ask_proposal(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -80,7 +81,7 @@ async def ask_proposal(message: types.Message, state: FSMContext) -> None:
     await state.set_state(FeedbackState.waiting_proposal)
 
 
-@router.message(FeedbackState.waiting_proposal, F.text == BACK_BUTTON)
+@router.message(FeedbackState.waiting_proposal, F.text == BACK_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def cancel_proposal(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -89,7 +90,7 @@ async def cancel_proposal(message: types.Message, state: FSMContext) -> None:
     record_sent(sent)
 
 
-@router.message(FeedbackState.waiting_proposal)
+@router.message(FeedbackState.waiting_proposal, F.chat.type == ChatType.PRIVATE)
 async def handle_proposal(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -111,7 +112,7 @@ async def handle_proposal(message: types.Message, state: FSMContext) -> None:
     await state.clear()
 
 
-@router.message(F.text == QUESTION_BUTTON)
+@router.message(F.text == QUESTION_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def ask_question(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -120,7 +121,7 @@ async def ask_question(message: types.Message, state: FSMContext) -> None:
     await state.set_state(FeedbackState.waiting_question)
 
 
-@router.message(FeedbackState.waiting_question, F.text == BACK_BUTTON)
+@router.message(FeedbackState.waiting_question, F.text == BACK_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def cancel_question(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -129,7 +130,7 @@ async def cancel_question(message: types.Message, state: FSMContext) -> None:
     record_sent(sent)
 
 
-@router.message(FeedbackState.waiting_question)
+@router.message(FeedbackState.waiting_question, F.chat.type == ChatType.PRIVATE)
 async def handle_question(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -151,7 +152,7 @@ async def handle_question(message: types.Message, state: FSMContext) -> None:
     await state.clear()
 
 
-@router.message(F.text == COMPLAINT_BUTTON)
+@router.message(F.text == COMPLAINT_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def ask_complaint(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -163,7 +164,7 @@ async def ask_complaint(message: types.Message, state: FSMContext) -> None:
     await state.set_state(FeedbackState.waiting_complaint)
 
 
-@router.message(FeedbackState.waiting_complaint, F.text == BACK_BUTTON)
+@router.message(FeedbackState.waiting_complaint, F.text == BACK_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def cancel_complaint(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -172,7 +173,7 @@ async def cancel_complaint(message: types.Message, state: FSMContext) -> None:
     record_sent(sent)
 
 
-@router.message(FeedbackState.waiting_complaint)
+@router.message(FeedbackState.waiting_complaint, F.chat.type == ChatType.PRIVATE)
 async def handle_complaint(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
