@@ -1,6 +1,7 @@
 import sqlite3
 import time
 from pathlib import Path
+from .modlog import log_action, add_strike
 
 MOD_DB_PATH = Path(__file__).resolve().parent.parent / "moderation.db"
 
@@ -112,8 +113,8 @@ def add_banned_link(link: str) -> None:
         conn.commit()
 
 
-def add_warning(user_id: int) -> int:
-    """Increase warning count for a user and return new count."""
+def add_warning(user_id: int, moderator_id: int = 0, reason: str = "") -> int:
+    """Increase warning count, log and return new count."""
     with sqlite3.connect(MOD_DB_PATH) as conn:
         cur = conn.execute(
             """
@@ -125,7 +126,9 @@ def add_warning(user_id: int) -> int:
         )
         count = cur.fetchone()[0]
         conn.commit()
-        return count
+    log_action(user_id, moderator_id, "warn", reason)
+    add_strike(user_id)
+    return count
 
 
 def get_warnings(user_id: int) -> int:
@@ -147,7 +150,7 @@ def clear_warnings(user_id: int) -> None:
         conn.commit()
 
 
-def mute_user(user_id: int, seconds: int) -> int:
+def mute_user(user_id: int, seconds: int, moderator_id: int = 0, reason: str = "") -> int:
     """Mute user for given seconds. 0 means permanent mute."""
     until = 0 if seconds <= 0 else int(time.time() + seconds)
     with sqlite3.connect(MOD_DB_PATH) as conn:
@@ -159,6 +162,7 @@ def mute_user(user_id: int, seconds: int) -> int:
             (user_id, until),
         )
         conn.commit()
+    log_action(user_id, moderator_id, "mute", reason)
     return until
 
 
@@ -183,7 +187,7 @@ def is_muted(user_id: int) -> bool:
         return False
 
 
-def ban_user(user_id: int, seconds: int = 0) -> int:
+def ban_user(user_id: int, seconds: int = 0, moderator_id: int = 0, reason: str = "") -> int:
     """Ban user for given seconds. 0 means permanent ban."""
     until = 0 if seconds <= 0 else int(time.time() + seconds)
     with sqlite3.connect(MOD_DB_PATH) as conn:
@@ -193,6 +197,7 @@ def ban_user(user_id: int, seconds: int = 0) -> int:
             (user_id, until),
         )
         conn.commit()
+    log_action(user_id, moderator_id, "ban", reason)
     return until
 
 

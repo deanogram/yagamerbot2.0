@@ -42,6 +42,13 @@ from .moderation import (
     remove_moderator,
     get_moderators,
 )
+from .modlog import (
+    init_modlog_db,
+    log_action,
+    add_strike,
+    get_strikes,
+    clear_strikes,
+)
 
 from .history import record_message, record_sent, cleanup
 from .achievements import (

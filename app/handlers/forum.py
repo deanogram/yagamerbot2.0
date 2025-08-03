@@ -12,7 +12,11 @@ from app.utils import (
     clear_warnings,
     mute_user,
     unmute_user,
+    unban_user,
     is_muted,
+    ban_user,
+    get_strikes,
+    clear_strikes,
 )
 from app.utils.spam import check_message_allowed
 
@@ -71,9 +75,19 @@ async def moderate_group_message(message: types.Message) -> None:
             "Повторяющийся контент.",
             "Слишком много капса и эмодзи.",
         }:
-            count = add_warning(message.from_user.id)
+            count = add_warning(message.from_user.id, reason=reason)
+            await message.bot.send_message(
+                _config.mod_chat_id,
+                f"⚠️ {mention} предупреждение: {reason}",
+                parse_mode="HTML",
+            )
             if count >= 4:
-                mute_user(message.from_user.id, 24 * 3600)
+                mute_user(message.from_user.id, 24 * 3600, reason="limit")
+                await message.bot.send_message(
+                    _config.mod_chat_id,
+                    f"🔇 {mention} получил мут на 24ч (превышен лимит)",
+                    parse_mode="HTML",
+                )
                 clear_warnings(message.from_user.id)
                 try:
                     await message.bot.restrict_chat_member(
@@ -156,7 +170,7 @@ async def cmd_mute(message: types.Message) -> None:
         await message.reply("Invalid user id")
         return
     hours = int(parts[2]) if len(parts) > 2 else 24
-    mute_user(user_id, hours * 3600)
+    mute_user(user_id, hours * 3600, moderator_id=message.from_user.id, reason="manual")
     try:
         await message.bot.restrict_chat_member(
             _config.forum_chat_id,
@@ -165,6 +179,10 @@ async def cmd_mute(message: types.Message) -> None:
             until_date=int(time.time()) + hours * 3600,
         )
         await message.reply(f"User {user_id} muted for {hours}h")
+        await message.bot.send_message(
+            _config.mod_chat_id,
+            f"🔇 User {user_id} muted for {hours}h by {message.from_user.id}",
+        )
     except Exception:
         await message.reply("Failed to mute user")
 
@@ -207,9 +225,14 @@ async def cmd_ban(message: types.Message) -> None:
     except ValueError:
         await message.reply("Invalid user id")
         return
+    ban_user(user_id, moderator_id=message.from_user.id, reason="manual")
     try:
         await message.bot.ban_chat_member(_config.forum_chat_id, user_id)
         await message.reply("User banned")
+        await message.bot.send_message(
+            _config.mod_chat_id,
+            f"⛔ User {user_id} banned by {message.from_user.id}",
+        )
     except Exception:
         await message.reply("Failed to ban user")
 
@@ -229,6 +252,7 @@ async def cmd_unban(message: types.Message) -> None:
         return
     try:
         await message.bot.unban_chat_member(_config.forum_chat_id, user_id)
+        unban_user(user_id)
         await message.reply("User unbanned")
     except Exception:
         await message.reply("Failed to unban user")
@@ -266,4 +290,38 @@ async def cmd_clearwarn(message: types.Message) -> None:
         return
     clear_warnings(user_id)
     await message.reply("Warnings cleared")
+
+
+@router.message(Command("strikes"))
+async def cmd_strikes(message: types.Message) -> None:
+    if not _allowed_staff(message):
+        return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.reply("Usage: /strikes <user_id>")
+        return
+    try:
+        user_id = int(parts[1])
+    except ValueError:
+        await message.reply("Invalid user id")
+        return
+    count = get_strikes(user_id)
+    await message.reply(f"Strikes: {count}")
+
+
+@router.message(Command("clearstrikes"))
+async def cmd_clearstrikes(message: types.Message) -> None:
+    if not _allowed_staff(message):
+        return
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.reply("Usage: /clearstrikes <user_id>")
+        return
+    try:
+        user_id = int(parts[1])
+    except ValueError:
+        await message.reply("Invalid user id")
+        return
+    clear_strikes(user_id)
+    await message.reply("Strikes cleared")
 
