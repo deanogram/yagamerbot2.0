@@ -44,6 +44,8 @@ from app.utils import (
     get_admins,
     get_moderators,
     get_user_stats,
+    get_strikes,
+    clear_strikes,
 )
 
 router = Router()
@@ -175,6 +177,7 @@ def _user_edit_kb(user_id: int) -> InlineKeyboardMarkup:
         buttons.append([InlineKeyboardButton(text="Разбанить", callback_data=f"unban:{user_id}")])
     else:
         buttons.append([InlineKeyboardButton(text="Бан", callback_data=f"banuser:{user_id}")])
+    buttons.append([InlineKeyboardButton(text="Страйки", callback_data=f"strikes:{user_id}")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -630,9 +633,13 @@ async def process_mute(message: types.Message, state: FSMContext) -> None:
     except ValueError:
         await message.answer("Нужно число")
         return
-    mute_user(uid, hours * 3600 if hours > 0 else 0)
+    mute_user(uid, hours * 3600 if hours > 0 else 0, moderator_id=message.from_user.id, reason="admin")
     await state.clear()
     await message.answer("Мут установлен")
+    await message.bot.send_message(
+        _config.mod_chat_id,
+        f"🔇 User {uid} muted for {hours}h by {message.from_user.id}",
+    )
     await _send_user_menu(message.bot, message.chat.id, uid)
 
 
@@ -657,14 +664,57 @@ async def process_ban(message: types.Message, state: FSMContext) -> None:
     except ValueError:
         await message.answer("Нужно число")
         return
-    ban_user(uid, hours * 3600 if hours > 0 else 0)
+    ban_user(uid, hours * 3600 if hours > 0 else 0, moderator_id=message.from_user.id, reason="admin")
     try:
         await message.bot.ban_chat_member(_config.forum_chat_id, uid, until_date=int(time.time()) + hours * 3600 if hours > 0 else None)
     except Exception:
         pass
     await state.clear()
     await message.answer("Бан установлен")
+    await message.bot.send_message(
+        _config.mod_chat_id,
+        f"⛔ User {uid} banned for {hours}h by {message.from_user.id}",
+    )
     await _send_user_menu(message.bot, message.chat.id, uid)
+
+
+@router.callback_query(F.data.startswith("strikes:"))
+async def cb_strikes(callback: types.CallbackQuery) -> None:
+    if not _is_staff(callback.from_user.id):
+        await callback.answer()
+        return
+    uid = int(callback.data.split(":", 1)[1])
+    count = get_strikes(uid)
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Сбросить", callback_data=f"clearstrikes:{uid}")],
+            [InlineKeyboardButton(text="Назад", callback_data=f"userback:{uid}")],
+        ]
+    )
+    await callback.message.answer(f"Страйки: {count}", reply_markup=kb)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("clearstrikes:"))
+async def cb_clear_strikes(callback: types.CallbackQuery) -> None:
+    if not _is_staff(callback.from_user.id):
+        await callback.answer()
+        return
+    uid = int(callback.data.split(":", 1)[1])
+    clear_strikes(uid)
+    await callback.message.answer("Страйки сброшены")
+    await _send_user_menu(callback.bot, callback.message.chat.id, uid)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("userback:"))
+async def cb_user_back(callback: types.CallbackQuery) -> None:
+    if not _is_staff(callback.from_user.id):
+        await callback.answer()
+        return
+    uid = int(callback.data.split(":", 1)[1])
+    await _send_user_menu(callback.bot, callback.message.chat.id, uid)
+    await callback.answer()
 
 
 @router.message(Command("promote"))
