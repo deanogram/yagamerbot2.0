@@ -47,8 +47,8 @@ def setup(config: Config):
     _config = config
 
 
-@router.message(Command("suggest"))
-@router.message(F.text == SUGGEST_BUTTON)
+@router.message(Command("suggest"), F.chat.type == ChatType.PRIVATE)
+@router.message(F.text == SUGGEST_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def cmd_suggest(message: types.Message, state: FSMContext):
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -61,7 +61,7 @@ async def cmd_suggest(message: types.Message, state: FSMContext):
     record_sent(sent)
 
 
-@router.message(Suggest.waiting_for_content, F.text == BACK_BUTTON)
+@router.message(Suggest.waiting_for_content, F.text == BACK_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def cancel_suggest(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -70,11 +70,8 @@ async def cancel_suggest(message: types.Message, state: FSMContext) -> None:
     record_sent(sent)
 
 
-@router.message(Suggest.waiting_for_content)
+@router.message(Suggest.waiting_for_content, F.chat.type == ChatType.PRIVATE)
 async def receive_content(message: types.Message, state: FSMContext):
-    if message.chat.type != ChatType.PRIVATE:
-        return
-
     await cleanup(message.bot, message.chat.id)
 
     allowed, reason = check_message_allowed(

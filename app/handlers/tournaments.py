@@ -6,6 +6,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
 )
+from aiogram.enums import ChatType
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
@@ -52,8 +53,8 @@ tournament_kb = ReplyKeyboardMarkup(
 )
 
 
-@router.message(Command("tournaments"))
-@router.message(F.text == TOURNAMENTS_BUTTON)
+@router.message(Command("tournaments"), F.chat.type == ChatType.PRIVATE)
+@router.message(F.text == TOURNAMENTS_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def tournaments_menu(message: types.Message) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -64,7 +65,7 @@ async def tournaments_menu(message: types.Message) -> None:
     record_sent(sent)
 
 
-@router.message(F.text == BACK_BUTTON)
+@router.message(F.text == BACK_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def tournaments_back(message: types.Message) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -72,7 +73,7 @@ async def tournaments_back(message: types.Message) -> None:
     record_sent(sent)
 
 
-@router.message(F.text == JOIN_BUTTON)
+@router.message(F.text == JOIN_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def show_tournaments(message: types.Message) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -98,7 +99,7 @@ async def show_tournaments(message: types.Message) -> None:
             record_sent(sent_msg)
 
 
-@router.message(F.text == RATING_BUTTON)
+@router.message(F.text == RATING_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def show_rating(message: types.Message) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -126,8 +127,8 @@ async def cb_join_tournament(callback: types.CallbackQuery, state: FSMContext) -
     await callback.answer()
 
 
-@router.message(JoinState.waiting_nick, F.text == BACK_BUTTON)
-@router.message(JoinState.waiting_age, F.text == BACK_BUTTON)
+@router.message(JoinState.waiting_nick, F.text == BACK_BUTTON, F.chat.type == ChatType.PRIVATE)
+@router.message(JoinState.waiting_age, F.text == BACK_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def cancel_join(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -136,7 +137,7 @@ async def cancel_join(message: types.Message, state: FSMContext) -> None:
     record_sent(sent)
 
 
-@router.message(JoinState.waiting_nick)
+@router.message(JoinState.waiting_nick, F.chat.type == ChatType.PRIVATE)
 async def ask_age(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)
@@ -146,7 +147,7 @@ async def ask_age(message: types.Message, state: FSMContext) -> None:
     record_sent(sent)
 
 
-@router.message(JoinState.waiting_age)
+@router.message(JoinState.waiting_age, F.chat.type == ChatType.PRIVATE)
 async def save_participant(message: types.Message, state: FSMContext) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)

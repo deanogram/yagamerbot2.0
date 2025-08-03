@@ -1,5 +1,6 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
+from aiogram.enums import ChatType
 
 from app.utils import (
     add_user,
@@ -34,8 +35,8 @@ def get_rank(xp: int) -> str:
     return "Титан"
 
 
-@router.message(Command("profile"))
-@router.message(F.text == PROFILE_BUTTON)
+@router.message(Command("profile"), F.chat.type == ChatType.PRIVATE)
+@router.message(F.text == PROFILE_BUTTON, F.chat.type == ChatType.PRIVATE)
 async def handle_profile(message: types.Message) -> None:
     record_message(message)
     await cleanup(message.bot, message.chat.id)

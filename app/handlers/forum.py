@@ -1,6 +1,7 @@
 from aiogram import Router, types
 from aiogram.enums import ChatMemberStatus
 from aiogram.filters import Command
+from random import choice
 import time
 
 from app.config import Config
@@ -19,6 +20,7 @@ from app.utils import (
     clear_strikes,
 )
 from app.utils.spam import check_message_allowed
+from app.constants import BOT_USERNAME
 
 router = Router()
 _config: Config
@@ -27,6 +29,23 @@ _config: Config
 def setup(config: Config) -> None:
     global _config
     _config = config
+
+
+SMALLTALK_KEYWORDS = ("как дела", "как жизнь", "как настроение")
+SMALLTALK_RESPONSES = [
+    "Все отлично, а у тебя?",
+    "Работаю в полную мощность!",
+]
+
+
+def _is_addressed(message: types.Message) -> bool:
+    if message.reply_to_message and message.reply_to_message.from_user and (
+        message.reply_to_message.from_user.username
+        and message.reply_to_message.from_user.username.lower() == BOT_USERNAME
+    ):
+        return True
+    text = (message.text or message.caption or "").lower()
+    return f"@{BOT_USERNAME}" in text
 
 
 @router.chat_member()
@@ -147,6 +166,21 @@ async def moderate_group_message(message: types.Message) -> None:
         return
     add_user(message.from_user)
     add_xp(message.from_user.id, 1)
+
+
+@router.message(lambda m: m.chat.id == _config.forum_chat_id and _is_addressed(m))
+async def handle_smalltalk(message: types.Message) -> None:
+    allowed, _ = check_message_allowed(
+        message.from_user.id, message.text or message.caption or ""
+    )
+    if not allowed:
+        return
+
+    text = (message.text or "").lower()
+    for kw in SMALLTALK_KEYWORDS:
+        if kw in text:
+            await message.reply(choice(SMALLTALK_RESPONSES))
+            break
 
 
 def _allowed_staff(message: types.Message) -> bool:

@@ -10,6 +10,9 @@ PROPOSAL_BUTTON = "\U0001F4A1 Предложения"
 QUESTION_BUTTON = "\u2753 Вопрос"
 COMPLAINT_BUTTON = "\u26A0\ufe0f Жалоба"
 
+# Bot username for mentions
+BOT_USERNAME = "yagamer_bot"
+
 CREATE_TOURNAMENT_BUTTON = "\U0001F195 Создать турнир"
 MUTED_LIST_BUTTON = "\U0001F910 Список мута"
 BANNED_LIST_BUTTON = "\u26D4\ufe0f Список забаненных"
