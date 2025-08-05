@@ -13,6 +13,7 @@ from app.constants import (
     BANNED_LIST_BUTTON,
     ASSIGN_ROLE_BUTTON,
     SEARCH_USER_BUTTON,
+    MOD_STATS_BUTTON,
     PARTICIPANTS_LIST_BUTTON,
     BACK_BUTTON,
     LEVEL_BEGINNER_BUTTON,
@@ -46,6 +47,7 @@ from app.utils import (
     get_user_stats,
     get_strikes,
     clear_strikes,
+    get_mod_stats,
 )
 
 router = Router()
@@ -190,6 +192,25 @@ async def _send_user_menu(bot: Bot, chat_id: int, user_id: int) -> None:
         f"Титул: {stats.get('title') or '-'}"
     )
     await bot.send_message(chat_id, text, reply_markup=_user_edit_kb(user_id))
+
+
+@router.message(Command("modstats"))
+@router.message(F.text == MOD_STATS_BUTTON)
+async def mod_stats(message: types.Message) -> None:
+    if not _is_staff(message.from_user.id):
+        return
+    stats = get_mod_stats()
+    top = "\n".join(
+        f"{i+1}. {uid} — {count}" for i, (uid, count) in enumerate(stats["top_offenders"])
+    )
+    if not top:
+        top = "нет"
+    text = (
+        f"Предупреждений за сутки: {stats['warnings_24h']}\n"
+        f"Мутов/банов за сутки: {stats['mutes_bans_24h']}\n"
+        f"Топ-нарушителей:\n{top}"
+    )
+    await message.answer(text, reply_markup=_menu_kb(message.from_user.id))
 
 
 @router.message(Command("user"))

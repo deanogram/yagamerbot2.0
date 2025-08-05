@@ -14,6 +14,7 @@ from app.constants import (
     MUTED_LIST_BUTTON,
     BANNED_LIST_BUTTON,
     ASSIGN_ROLE_BUTTON,
+    MOD_STATS_BUTTON,
 )
 from app.utils import (
     add_user,
@@ -64,6 +65,7 @@ admin_kb = ReplyKeyboardMarkup(
         [KeyboardButton(text=MANAGE_TOURNAMENTS_BUTTON)],
         [KeyboardButton(text=MUTED_LIST_BUTTON), KeyboardButton(text=BANNED_LIST_BUTTON)],
         [KeyboardButton(text=SEARCH_USER_BUTTON)],
+        [KeyboardButton(text=MOD_STATS_BUTTON)],
     ],
     resize_keyboard=True,
 )
@@ -71,6 +73,7 @@ admin_kb = ReplyKeyboardMarkup(
 moderator_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text=MUTED_LIST_BUTTON), KeyboardButton(text=BANNED_LIST_BUTTON)],
+        [KeyboardButton(text=MOD_STATS_BUTTON)],
     ],
     resize_keyboard=True,
 )
@@ -82,6 +85,7 @@ main_admin_kb = ReplyKeyboardMarkup(
         [KeyboardButton(text=MUTED_LIST_BUTTON), KeyboardButton(text=BANNED_LIST_BUTTON)],
         [KeyboardButton(text=ASSIGN_ROLE_BUTTON)],
         [KeyboardButton(text=SEARCH_USER_BUTTON)],
+        [KeyboardButton(text=MOD_STATS_BUTTON)],
     ],
     resize_keyboard=True,
 )
