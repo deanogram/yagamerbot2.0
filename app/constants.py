@@ -20,6 +20,7 @@ ASSIGN_ROLE_BUTTON = "\U0001F451 Назначить админа/модерат�
 MANAGE_TOURNAMENTS_BUTTON = "\U0001F527 Управление турнирами"
 PARTICIPANTS_LIST_BUTTON = "\U0001F4CB Список участников"
 SEARCH_USER_BUTTON = "\U0001F50E Найти пользователя"
+MOD_STATS_BUTTON = "\U0001F4CA Статистика модерации"
 
 # Skill level options for tournaments
 LEVEL_BEGINNER_BUTTON = "Уровень: Новичок"

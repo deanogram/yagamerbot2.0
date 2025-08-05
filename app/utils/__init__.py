@@ -48,6 +48,7 @@ from .modlog import (
     add_strike,
     get_strikes,
     clear_strikes,
+    get_mod_stats,
 )
 
 from .history import record_message, record_sent, cleanup

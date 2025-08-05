@@ -70,3 +70,28 @@ def clear_strikes(user_id: int) -> None:
     with sqlite3.connect(LOG_DB_PATH) as conn:
         conn.execute("DELETE FROM strikes WHERE user_id=?", (user_id,))
         conn.commit()
+
+
+def get_mod_stats() -> dict:
+    """Return moderation statistics for the last 24 hours and top offenders."""
+    day_ago = int(time.time()) - 86400
+    with sqlite3.connect(LOG_DB_PATH) as conn:
+        cur = conn.execute(
+            "SELECT COUNT(*) FROM logs WHERE action='warn' AND timestamp>=?",
+            (day_ago,),
+        )
+        warnings_24h = cur.fetchone()[0]
+        cur = conn.execute(
+            "SELECT COUNT(*) FROM logs WHERE action IN ('mute','ban') AND timestamp>=?",
+            (day_ago,),
+        )
+        mutes_bans_24h = cur.fetchone()[0]
+        cur = conn.execute(
+            "SELECT user_id, COUNT(*) as c FROM logs GROUP BY user_id ORDER BY c DESC LIMIT 3"
+        )
+        top_offenders = cur.fetchall()
+    return {
+        "warnings_24h": warnings_24h,
+        "mutes_bans_24h": mutes_bans_24h,
+        "top_offenders": top_offenders,
+    }
