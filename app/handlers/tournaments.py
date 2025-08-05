@@ -105,14 +105,16 @@ async def show_rating(message: types.Message) -> None:
     await cleanup(message.bot, message.chat.id)
     ratings = get_tournament_ratings()
     if not ratings:
-        sent = await message.answer("\u2753 Рейтинг пока пуст.")
+        sent = await message.answer(
+            "\u2753 Рейтинг пока пуст.", reply_markup=tournament_kb
+        )
         record_sent(sent)
         return
 
     lines = ["\U0001F3C6 Рейтинг игроков:"]
     for rank, name, score in ratings:
         lines.append(f"{rank}. {name} — {score}")
-    sent = await message.answer("\n".join(lines))
+    sent = await message.answer("\n".join(lines), reply_markup=tournament_kb)
     record_sent(sent)
 
 
