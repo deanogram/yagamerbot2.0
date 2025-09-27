@@ -200,9 +200,13 @@ async def mod_stats(message: types.Message) -> None:
     if not _is_staff(message.from_user.id):
         return
     stats = get_mod_stats()
-    top = "\n".join(
-        f"{i+1}. {uid} — {count}" for i, (uid, count) in enumerate(stats["top_offenders"])
-    )
+    top_lines = []
+    for i, (uid, count) in enumerate(stats["top_offenders"]):
+        user_stats = get_user_stats(uid) or {}
+        top_lines.append(
+            f"{i+1}. {uid} (@{user_stats.get('username') or 'нет'}) — {count}"
+        )
+    top = "\n".join(top_lines)
     if not top:
         top = "нет"
     text = (
